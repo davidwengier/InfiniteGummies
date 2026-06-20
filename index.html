@@ -24,6 +24,17 @@
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #17141f;
+      --panel: rgba(34, 28, 45, 0.86);
+      --panel-strong: #251f31;
+      --ink: #fff7ec;
+      --muted: #c7b9ca;
+      --pink-dark: #ff8db8;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -103,7 +114,15 @@
       font-size: clamp(0.95rem, 1.6vw, 1.05rem);
     }
 
-    .reset-button {
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .reset-button,
+    .theme-toggle {
       border: 0;
       border-radius: 999px;
       padding: 12px 18px;
@@ -115,7 +134,40 @@
       touch-action: manipulation;
     }
 
-    .reset-button:hover {
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .theme-toggle-switch {
+      position: relative;
+      width: 34px;
+      height: 20px;
+      border-radius: 999px;
+      background: rgba(154, 108, 255, 0.25);
+      box-shadow: inset 0 0 0 2px rgba(154, 108, 255, 0.22);
+    }
+
+    .theme-toggle-switch::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--pink);
+      transition: transform 160ms ease;
+    }
+
+    .theme-toggle[aria-pressed="true"] .theme-toggle-switch::after {
+      transform: translateX(14px);
+      background: var(--lemon);
+    }
+
+    .reset-button:hover,
+    .theme-toggle:hover {
       background: white;
       transform: translateY(-1px);
     }
@@ -133,6 +185,10 @@
       background: var(--panel);
       box-shadow: var(--shadow);
       backdrop-filter: blur(14px);
+    }
+
+    :root[data-theme="dark"] .panel {
+      border-color: rgba(255, 255, 255, 0.12);
     }
 
     .counter-panel {
@@ -193,6 +249,17 @@
       border-radius: 20px;
       padding: 16px;
       background: rgba(255, 255, 255, 0.7);
+    }
+
+    :root[data-theme="dark"] .stat-card,
+    :root[data-theme="dark"] .reset-button,
+    :root[data-theme="dark"] .theme-toggle {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    :root[data-theme="dark"] .reset-button:hover,
+    :root[data-theme="dark"] .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.16);
     }
 
     .stat-card strong {
@@ -360,6 +427,11 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.72);
     }
 
+    :root[data-theme="dark"] .shop-header {
+      border-bottom-color: rgba(255, 255, 255, 0.12);
+      background: linear-gradient(135deg, rgba(142, 232, 86, 0.1), rgba(255, 111, 159, 0.1));
+    }
+
     .shop-header h2 {
       margin-bottom: 0;
       font-size: clamp(1.65rem, 4vw, 2.4rem);
@@ -420,6 +492,11 @@
       touch-action: manipulation;
     }
 
+    :root[data-theme="dark"] .store-upgrade {
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 111, 159, 0.08));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 24px rgba(0, 0, 0, 0.2);
+    }
+
     .store-upgrade:not(:disabled):hover,
     .building:not(:disabled):hover {
       transform: translateY(-1px);
@@ -434,9 +511,19 @@
       cursor: not-allowed;
     }
 
+    :root[data-theme="dark"] .store-upgrade:disabled,
+    :root[data-theme="dark"] .building:disabled {
+      color: rgba(255, 247, 236, 0.42);
+      background: #1d1826;
+    }
+
     .store-upgrade.owned {
       color: var(--ink);
       background: linear-gradient(145deg, rgba(142, 232, 86, 0.32), rgba(255, 215, 92, 0.28));
+    }
+
+    :root[data-theme="dark"] .store-upgrade.owned {
+      background: linear-gradient(145deg, rgba(142, 232, 86, 0.2), rgba(255, 215, 92, 0.15));
     }
 
     .store-upgrade-icon {
@@ -491,6 +578,10 @@
       cursor: pointer;
       text-align: left;
       touch-action: manipulation;
+    }
+
+    :root[data-theme="dark"] .building {
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 24px rgba(0, 0, 0, 0.22);
     }
 
     .building-icon {
@@ -584,7 +675,13 @@
         <h1>Infinite Gummies</h1>
         <p class="tagline">Click the giant gummy snake, grow your snake stash, and wriggle your way to a proper pile of chewy lollies.</p>
       </div>
-      <button class="reset-button" id="resetGame" type="button">Reset stash</button>
+      <div class="header-actions">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false">
+          <span class="theme-toggle-switch" aria-hidden="true"></span>
+          <span id="themeToggleLabel">Dark mode</span>
+        </button>
+        <button class="reset-button" id="resetGame" type="button">Reset stash</button>
+      </div>
     </header>
 
     <section class="game" aria-label="Infinite Gummies game">
@@ -658,6 +755,7 @@
 
   <script>
     const SAVE_KEY = "gummy-snake-clicker-save-v1";
+    const THEME_KEY = "infinite-gummies-theme";
 
     const buildingDefinitions = [
       {
@@ -983,8 +1081,11 @@
     const storeUpgradesContainer = document.querySelector("#storeUpgrades");
     const buildingsContainer = document.querySelector("#buildings");
     const floaties = document.querySelector("#floaties");
+    const themeToggle = document.querySelector("#themeToggle");
+    const themeToggleLabel = document.querySelector("#themeToggleLabel");
     const resetGame = document.querySelector("#resetGame");
 
+    initialiseTheme();
     renderStoreUpgrades();
     renderBuildings();
     render();
@@ -997,6 +1098,12 @@
       animateLolly();
       saveState();
       render();
+    });
+
+    themeToggle.addEventListener("click", () => {
+      const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      setTheme(nextTheme);
+      localStorage.setItem(THEME_KEY, nextTheme);
     });
 
     resetGame.addEventListener("click", () => {
@@ -1018,6 +1125,19 @@
 
       render();
     }, 1000);
+
+    function initialiseTheme() {
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      const preferredTheme = savedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      setTheme(preferredTheme);
+    }
+
+    function setTheme(theme) {
+      const isDark = theme === "dark";
+      document.documentElement.dataset.theme = isDark ? "dark" : "light";
+      themeToggle.setAttribute("aria-pressed", String(isDark));
+      themeToggleLabel.textContent = isDark ? "Light mode" : "Dark mode";
+    }
 
     function loadState() {
       const savedState = localStorage.getItem(SAVE_KEY);
