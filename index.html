@@ -608,10 +608,23 @@
     }
 
     .building-owned {
+      display: grid;
+      gap: 2px;
+      justify-items: end;
       color: rgba(53, 32, 53, 0.26);
-      font-size: 2rem;
       line-height: 1;
       font-weight: 950;
+    }
+
+    .building-owned-label {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .building-owned-count {
+      font-size: 2rem;
     }
 
     .building:not(:disabled) .building-price,
@@ -1244,7 +1257,10 @@
             <span class="building-meta">${getBuildingRateText(building)}</span>
           </span>
           <span class="building-purchase">
-            <span class="building-owned owned">0</span>
+            <span class="building-owned">
+              <span class="building-owned-label">Owned</span>
+              <span class="building-owned-count owned">0</span>
+            </span>
             <span class="building-price cost">0 snakes</span>
           </span>
         `;
