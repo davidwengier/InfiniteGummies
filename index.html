@@ -37,6 +37,7 @@
         radial-gradient(circle at 50% 85%, rgba(255, 111, 159, 0.24), transparent 32%),
         var(--bg);
       overflow-x: hidden;
+      touch-action: manipulation;
     }
 
     body::before,
@@ -110,6 +111,7 @@
       box-shadow: 0 10px 30px rgba(214, 54, 120, 0.12);
       cursor: pointer;
       font-weight: 800;
+      touch-action: manipulation;
     }
 
     .reset-button:hover {
@@ -222,6 +224,9 @@
         inset 18px 22px 38px rgba(255, 255, 255, 0.34),
         0 26px 60px rgba(87, 214, 180, 0.36);
       cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
       transform: rotate(-2deg);
       transition: transform 120ms ease, box-shadow 120ms ease;
     }
@@ -409,6 +414,7 @@
       box-shadow: inset 0 0 0 1px rgba(53, 32, 53, 0.08), 0 10px 24px rgba(53, 32, 53, 0.08);
       cursor: pointer;
       text-align: left;
+      touch-action: manipulation;
     }
 
     .store-upgrade:not(:disabled):hover,
@@ -481,6 +487,7 @@
       box-shadow: inset 0 0 0 1px rgba(53, 32, 53, 0.06), 0 10px 24px rgba(53, 32, 53, 0.08);
       cursor: pointer;
       text-align: left;
+      touch-action: manipulation;
     }
 
     .building-icon {
