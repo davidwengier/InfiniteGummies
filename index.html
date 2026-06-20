@@ -1313,13 +1313,7 @@
     }
 
     function getBuildingRateText(building) {
-      const boostedRate = getBuildingPerSecond(building);
-      const baseRate = building.perSecond;
-      const rateText = `${formatRate(boostedRate)} snakes/sec each`;
-
-      return boostedRate === baseRate
-        ? rateText
-        : `${rateText} (base ${formatRate(baseRate)})`;
+      return `${formatRate(getBuildingPerSecond(building))} snakes/sec each`;
     }
 
     function getBuildingMultiplier() {
