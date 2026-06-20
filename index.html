@@ -1198,7 +1198,7 @@
 
         buildingCard.querySelector(".owned").textContent = formatNumber(owned);
         buildingCard.querySelector(".cost").textContent = `${formatNumber(cost)} snakes`;
-        buildingCard.querySelector(".building-meta").textContent = `${formatRate(getBuildingPerSecond(building))} snakes/sec each`;
+        buildingCard.querySelector(".building-meta").textContent = getBuildingRateText(building);
         buildingCard.disabled = state.lollies < cost;
       }
     }
@@ -1241,7 +1241,7 @@
           <span class="building-info">
             <span class="building-name">${building.name}</span>
             <span class="building-description">${building.description}</span>
-            <span class="building-meta">${formatRate(getBuildingPerSecond(building))} snakes/sec each</span>
+            <span class="building-meta">${getBuildingRateText(building)}</span>
           </span>
           <span class="building-purchase">
             <span class="building-owned owned">0</span>
@@ -1263,6 +1263,7 @@
       state.lollies -= cost;
       state.storeUpgrades[upgrade.id] = getStoreUpgradeCount(upgrade) + 1;
       saveState();
+      renderBuildings();
       render();
     }
 
@@ -1309,6 +1310,16 @@
 
     function getBuildingPerSecond(building) {
       return building.perSecond * getBuildingMultiplier();
+    }
+
+    function getBuildingRateText(building) {
+      const boostedRate = getBuildingPerSecond(building);
+      const baseRate = building.perSecond;
+      const rateText = `${formatRate(boostedRate)} snakes/sec each`;
+
+      return boostedRate === baseRate
+        ? rateText
+        : `${rateText} (base ${formatRate(baseRate)})`;
     }
 
     function getBuildingMultiplier() {
