@@ -1062,16 +1062,17 @@
     const ascensionUpgradeDefinitions = [
       {
         id: "sugar-crown",
-        name: "Sugar Crown",
+        name: "Head Magnet",
         image: makeIcon("sour-sugar"),
-        description: "Permanently adds +1 snake to every click, even after ascending.",
-        effect: "+1 click forever",
+        description: "Earn an extra gummy snake head whenever you ascend.",
+        effect: "+1 head per ascend",
         cost: 1,
         costMultiplier: 2,
         maxPurchases: 20,
-        clickBonus: 1,
+        clickBonus: 0,
         buildingMultiplier: 1,
-        startingGummies: 0
+        startingGummies: 0,
+        extraHeadsPerAscend: 1
       },
       {
         id: "eternal-batches",
@@ -1395,7 +1396,7 @@
       ascendButton.textContent = pendingHeads > 0
         ? `Ascend for ${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}`
         : "Ascend at 1 billion";
-      ascendHint.textContent = `This run: ${formatGummyCount(state.runGummiesEarned)} gummies earned. 1 head per 1 billion.`;
+      ascendHint.textContent = getAscendHintText();
       ascensionShopBalance.textContent = `${formatNumber(state.snakeHeads)} ${pluraliseHead(state.snakeHeads)}`;
 
       for (const upgrade of storeUpgradeDefinitions) {
@@ -1683,7 +1684,24 @@
     }
 
     function getPendingSnakeHeads() {
+      const baseHeads = getBasePendingSnakeHeads();
+      return baseHeads > 0 ? baseHeads + getAscensionBonusHeads() : 0;
+    }
+
+    function getBasePendingSnakeHeads() {
       return Math.floor(state.runGummiesEarned / ASCENSION_THRESHOLD);
+    }
+
+    function getAscensionBonusHeads(upgrades = state.ascensionUpgrades) {
+      return ascensionUpgradeDefinitions.reduce((total, upgrade) => {
+        return total + (upgrade.extraHeadsPerAscend ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+      }, 0);
+    }
+
+    function getAscendHintText() {
+      const bonusHeads = getAscensionBonusHeads();
+      const bonusText = bonusHeads > 0 ? ` + ${formatNumber(bonusHeads)} bonus ${pluraliseHead(bonusHeads)}` : "";
+      return `This run: ${formatGummyCount(state.runGummiesEarned)} gummies earned. 1 head per 1 billion${bonusText}.`;
     }
 
     function getAscensionBaseClickPower(upgrades = state.ascensionUpgrades) {

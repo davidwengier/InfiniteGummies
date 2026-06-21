@@ -8,7 +8,7 @@ Infinite Gummies is a static, GitHub Pages-friendly clicker game. Keep the app s
 - The visible game name is **Infinite Gummies**.
 - The final building is **Dug**, using the committed `Dug.png` asset.
 - The app saves progress in `localStorage` using `gummy-snake-clicker-save-v1`; dark mode uses `infinite-gummies-theme`.
-- Ascension grants 1 gummy snake head per billion gummies earned in the current run, then resets run upgrades/buildings while preserving permanent head-shop upgrades.
+- Ascension grants 1 gummy snake head per billion gummies earned in the current run, plus any permanent head-shop bonuses, then resets run upgrades/buildings while preserving permanent head-shop upgrades.
 - The game is intended to be hosted directly from the repository root on GitHub Pages.
 
 ## Implementation conventions
