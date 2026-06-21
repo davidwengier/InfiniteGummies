@@ -1772,6 +1772,10 @@
       return Math.floor(value) === 1 ? "snake" : "snakes";
     }
 
+    function pluraliseHead(value) {
+      return Math.floor(value) === 1 ? "head" : "heads";
+    }
+
     function animateLolly() {
       lollyButton.classList.remove("popping");
       requestAnimationFrame(() => {
