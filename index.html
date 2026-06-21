@@ -1526,9 +1526,9 @@
 
       lollyCount.textContent = formatGummyCount(roundedLollies);
       lollyLabel.textContent = roundedLollies === 1 ? "gummy snake in the stash" : "gummy snakes in the stash";
-      perClick.textContent = formatRate(currentPerClick);
-      perSecond.textContent = formatRate(currentPerSecond);
-      buttonGain.textContent = formatRate(currentPerClick);
+      perClick.textContent = formatGummyCount(currentPerClick);
+      perSecond.textContent = formatGummyCount(currentPerSecond);
+      buttonGain.textContent = formatGummyCount(currentPerClick);
       buttonGainLabel.textContent = pluraliseSnake(currentPerClick);
       snakeHeadCount.textContent = formatNumber(state.snakeHeads);
       ascendButton.disabled = false;
