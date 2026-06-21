@@ -904,7 +904,8 @@
         clickBonus: 0,
         clickMultiplier: 2,
         buildingMultiplier: 1,
-        repeatable: true
+        repeatable: true,
+        maxPurchases: 5
       },
       {
         id: "stretchy-recipe",
@@ -1215,8 +1216,8 @@
 
         upgradeCard.classList.toggle("owned", owned > 0);
         upgradeCard.disabled = maxed || state.lollies < cost;
-        upgradeCard.querySelector(".store-upgrade-owned").textContent = upgrade.repeatable ? `Owned: ${formatNumber(owned)}` : owned > 0 ? "Bought" : "Not bought";
-        upgradeCard.querySelector(".store-upgrade-price").textContent = maxed ? "Bought" : `${formatGummyCount(cost)} snakes`;
+        upgradeCard.querySelector(".store-upgrade-owned").textContent = getStoreUpgradeOwnedText(upgrade, owned);
+        upgradeCard.querySelector(".store-upgrade-price").textContent = maxed ? "Maxed" : `${formatGummyCount(cost)} snakes`;
       }
 
       for (const building of buildingDefinitions) {
@@ -1324,7 +1325,16 @@
     }
 
     function isStoreUpgradeMaxed(upgrade) {
-      return !upgrade.repeatable && getStoreUpgradeCount(upgrade) > 0;
+      const owned = getStoreUpgradeCount(upgrade);
+      return upgrade.maxPurchases ? owned >= upgrade.maxPurchases : !upgrade.repeatable && owned > 0;
+    }
+
+    function getStoreUpgradeOwnedText(upgrade, owned) {
+      if (upgrade.maxPurchases) {
+        return `Owned: ${formatNumber(owned)}/${formatNumber(upgrade.maxPurchases)}`;
+      }
+
+      return upgrade.repeatable ? `Owned: ${formatNumber(owned)}` : owned > 0 ? "Bought" : "Not bought";
     }
 
     function getLolliesPerClick() {
