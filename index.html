@@ -306,7 +306,7 @@
 
     .ascend-actions {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 10px;
     }
 
@@ -838,7 +838,6 @@
             </div>
             <div class="ascend-actions">
               <button class="ascend-button" id="ascendButton" type="button">Ascend at 1 billion</button>
-              <button class="shop-toggle-button" id="openAscensionShop" type="button">Head shop</button>
             </div>
             <p class="ascend-hint" id="ascendHint">Earn 1 gummy snake head for every billion gummies in a run.</p>
           </div>
@@ -1408,7 +1407,6 @@
     const snakeHeadCount = document.querySelector("#snakeHeadCount");
     const ascendButton = document.querySelector("#ascendButton");
     const ascendHint = document.querySelector("#ascendHint");
-    const openAscensionShop = document.querySelector("#openAscensionShop");
     const completeAscension = document.querySelector("#completeAscension");
     const returnToStore = document.querySelector("#returnToStore");
     const shopTitle = document.querySelector("#shopTitle");
@@ -1442,7 +1440,6 @@
     });
 
     ascendButton.addEventListener("click", () => showShop("ascension"));
-    openAscensionShop.addEventListener("click", () => showShop("ascension"));
     completeAscension.addEventListener("click", completeAscensionReset);
     returnToStore.addEventListener("click", () => showShop("store"));
 
