@@ -420,6 +420,7 @@
     .lolly-button:focus-visible,
     .store-upgrade:focus-visible,
     .building:focus-visible,
+    .building-buy-button:focus-visible,
     .ascend-button:focus-visible,
     .shop-toggle-button:focus-visible,
     .reset-button:focus-visible {
@@ -562,6 +563,38 @@
     .ascension-upgrades {
       display: grid;
       gap: 8px;
+    }
+
+    .building-buy-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 850;
+    }
+
+    .building-buy-button {
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: var(--pink-dark);
+      background: rgba(255, 255, 255, 0.72);
+      cursor: pointer;
+      font-weight: 950;
+      touch-action: manipulation;
+    }
+
+    .building-buy-button.active {
+      color: white;
+      background: linear-gradient(135deg, var(--pink), var(--pink-dark));
+      box-shadow: 0 8px 18px rgba(217, 54, 120, 0.22);
+    }
+
+    :root[data-theme="dark"] .building-buy-button {
+      background: rgba(255, 255, 255, 0.12);
     }
 
     .store-upgrade {
@@ -864,6 +897,13 @@
             <div class="shop-block-header">
               <h3>Buildings</h3>
               <span>Make snakes while you wait</span>
+            </div>
+            <div class="building-buy-controls" aria-label="Building buy amount">
+              <span>Buy</span>
+              <button class="building-buy-button active" type="button" data-building-buy="1">1</button>
+              <button class="building-buy-button" type="button" data-building-buy="10">10</button>
+              <button class="building-buy-button" type="button" data-building-buy="100">100</button>
+              <button class="building-buy-button" type="button" data-building-buy="max">Max</button>
             </div>
             <div class="buildings" id="buildings"></div>
           </section>
@@ -1396,6 +1436,7 @@
     };
 
     let state = loadState();
+    let buildingBuyMode = "1";
 
     const lollyCount = document.querySelector("#lollyCount");
     const lollyLabel = document.querySelector("#lollyLabel");
@@ -1417,6 +1458,7 @@
     const storeUpgradesContainer = document.querySelector("#storeUpgrades");
     const ascensionUpgradesContainer = document.querySelector("#ascensionUpgrades");
     const buildingsContainer = document.querySelector("#buildings");
+    const buildingBuyButtons = document.querySelectorAll("[data-building-buy]");
     const floaties = document.querySelector("#floaties");
     const themeToggle = document.querySelector("#themeToggle");
     const themeToggleLabel = document.querySelector("#themeToggleLabel");
@@ -1442,6 +1484,13 @@
     ascendButton.addEventListener("click", () => showShop("ascension"));
     completeAscension.addEventListener("click", completeAscensionReset);
     returnToStore.addEventListener("click", () => showShop("store"));
+
+    buildingBuyButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        buildingBuyMode = button.dataset.buildingBuy;
+        render();
+      });
+    });
 
     themeToggle.addEventListener("click", () => {
       const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
@@ -1541,6 +1590,10 @@
       ascendHint.textContent = getAscendHintText();
       ascensionShopBalance.textContent = `${formatNumber(state.snakeHeads)} ${pluraliseHead(state.snakeHeads)}`;
 
+      buildingBuyButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.buildingBuy === buildingBuyMode);
+      });
+
       for (const upgrade of storeUpgradeDefinitions) {
         const owned = getStoreUpgradeCount(upgrade);
         const maxed = isStoreUpgradeMaxed(upgrade);
@@ -1554,14 +1607,14 @@
       }
 
       for (const building of buildingDefinitions) {
-        const owned = state.buildings[building.id];
-        const cost = getBuildingCost(building);
+        const owned = state.buildings[building.id] ?? 0;
+        const purchase = getBuildingPurchase(building);
         const buildingCard = document.querySelector(`[data-building="${building.id}"]`);
 
         buildingCard.querySelector(".owned").textContent = formatNumber(owned);
-        buildingCard.querySelector(".cost").textContent = `${formatGummyCount(cost)} snakes`;
+        buildingCard.querySelector(".cost").textContent = getBuildingPurchaseText(purchase);
         buildingCard.querySelector(".building-meta").textContent = getBuildingRateText(building);
-        buildingCard.disabled = state.lollies < cost;
+        buildingCard.disabled = purchase.quantity <= 0 || state.lollies < purchase.cost;
       }
 
       for (const upgrade of ascensionUpgradeDefinitions) {
@@ -1695,13 +1748,13 @@
     }
 
     function buyBuilding(building) {
-      const cost = getBuildingCost(building);
-      if (state.lollies < cost) {
+      const purchase = getBuildingPurchase(building);
+      if (purchase.quantity <= 0 || state.lollies < purchase.cost) {
         return;
       }
 
-      state.lollies -= cost;
-      state.buildings[building.id] += 1;
+      state.lollies -= purchase.cost;
+      state.buildings[building.id] = (state.buildings[building.id] ?? 0) + purchase.quantity;
       saveState();
       render();
     }
@@ -1746,7 +1799,77 @@
 
     function getBuildingCost(building) {
       const owned = state.buildings[building.id] ?? 0;
+      return getBuildingCostAt(building, owned);
+    }
+
+    function getBuildingCostAt(building, owned) {
       return Math.ceil(building.baseCost * building.costMultiplier ** owned);
+    }
+
+    function getBuildingPurchase(building) {
+      if (buildingBuyMode === "max") {
+        const quantity = getMaxAffordableBuildingQuantity(building, state.lollies);
+        return {
+          quantity,
+          cost: getBulkBuildingCost(building, quantity)
+        };
+      }
+
+      const quantity = Number.parseInt(buildingBuyMode, 10) || 1;
+      return {
+        quantity,
+        cost: getBulkBuildingCost(building, quantity)
+      };
+    }
+
+    function getBulkBuildingCost(building, quantity, owned = state.buildings[building.id] ?? 0) {
+      let cost = 0;
+
+      for (let index = 0; index < quantity; index += 1) {
+        cost += getBuildingCostAt(building, owned + index);
+      }
+
+      return cost;
+    }
+
+    function getMaxAffordableBuildingQuantity(building, budget) {
+      const owned = state.buildings[building.id] ?? 0;
+      const nextCost = getBuildingCostAt(building, owned);
+      if (budget < nextCost) {
+        return 0;
+      }
+
+      const multiplier = building.costMultiplier;
+      const firstCost = building.baseCost * multiplier ** owned;
+      let quantity = Math.floor(Math.log(1 + (budget * (multiplier - 1)) / firstCost) / Math.log(multiplier));
+
+      if (!Number.isFinite(quantity) || quantity < 1) {
+        quantity = 1;
+      }
+
+      while (quantity > 0 && getBulkBuildingCost(building, quantity, owned) > budget) {
+        quantity -= 1;
+      }
+
+      while (getBulkBuildingCost(building, quantity + 1, owned) <= budget) {
+        quantity += 1;
+      }
+
+      return quantity;
+    }
+
+    function getBuildingPurchaseText(purchase) {
+      if (buildingBuyMode === "max") {
+        return purchase.quantity > 0
+          ? `Max: ${formatNumber(purchase.quantity)} for ${formatGummyCount(purchase.cost)} snakes`
+          : "Max: not enough snakes";
+      }
+
+      if (purchase.quantity === 1) {
+        return `${formatGummyCount(purchase.cost)} snakes`;
+      }
+
+      return `${formatNumber(purchase.quantity)} for ${formatGummyCount(purchase.cost)} snakes`;
     }
 
     function getStoreUpgradeCost(upgrade) {
