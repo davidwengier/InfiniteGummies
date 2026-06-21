@@ -276,6 +276,83 @@
       font-weight: 700;
     }
 
+    .ascend-panel {
+      display: grid;
+      gap: 10px;
+      width: min(440px, 100%);
+      margin: 0 auto;
+      border-radius: 22px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    :root[data-theme="dark"] .ascend-panel {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .snake-head-balance {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .snake-head-balance strong {
+      color: var(--pink-dark);
+      font-size: 1.45rem;
+    }
+
+    .ascend-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .ascend-button,
+    .shop-toggle-button {
+      border: 0;
+      border-radius: 16px;
+      padding: 12px 14px;
+      color: white;
+      background: linear-gradient(135deg, var(--grape), var(--pink-dark));
+      box-shadow: 0 10px 20px rgba(154, 108, 255, 0.22);
+      cursor: pointer;
+      font-weight: 950;
+      touch-action: manipulation;
+    }
+
+    .shop-toggle-button {
+      color: var(--pink-dark);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    :root[data-theme="dark"] .shop-toggle-button {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .ascend-button:not(:disabled):hover,
+    .shop-toggle-button:not(:disabled):hover {
+      transform: translateY(-1px);
+    }
+
+    .ascend-button:disabled,
+    .shop-toggle-button:disabled {
+      color: rgba(53, 32, 53, 0.44);
+      background: #eadde7;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .ascend-hint,
+    .ascension-copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 750;
+    }
+
     .lolly-button {
       position: relative;
       display: grid;
@@ -343,6 +420,8 @@
     .lolly-button:focus-visible,
     .store-upgrade:focus-visible,
     .building:focus-visible,
+    .ascend-button:focus-visible,
+    .shop-toggle-button:focus-visible,
     .reset-button:focus-visible {
       outline: 4px solid rgba(154, 108, 255, 0.55);
       outline-offset: 4px;
@@ -477,6 +556,11 @@
     .store-upgrades {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .ascension-upgrades {
+      display: grid;
       gap: 8px;
     }
 
@@ -746,31 +830,57 @@
               <span>snakes per second</span>
             </div>
           </div>
+
+          <div class="ascend-panel" aria-label="Ascension">
+            <div class="snake-head-balance">
+              <span>Gummy snake heads</span>
+              <strong id="snakeHeadCount">0</strong>
+            </div>
+            <div class="ascend-actions">
+              <button class="ascend-button" id="ascendButton" type="button">Ascend at 1 billion</button>
+              <button class="shop-toggle-button" id="openAscensionShop" type="button">Head shop</button>
+            </div>
+            <p class="ascend-hint" id="ascendHint">Earn 1 gummy snake head for every billion gummies in a run.</p>
+          </div>
         </div>
         <div class="floaties" id="floaties" aria-hidden="true"></div>
       </article>
 
       <aside class="panel shop-panel">
         <div class="shop-header">
-          <h2>Store</h2>
-          <span>Gummy stock</span>
+          <h2 id="shopTitle">Store</h2>
+          <span id="shopSubtitle">Gummy stock</span>
         </div>
 
-        <section class="shop-block">
-          <div class="shop-block-header">
-            <h3>Upgrades</h3>
-            <span>Permanent boosts</span>
-          </div>
-          <div class="store-upgrades" id="storeUpgrades"></div>
-        </section>
+        <div id="normalStore">
+          <section class="shop-block">
+            <div class="shop-block-header">
+              <h3>Upgrades</h3>
+              <span>Run boosts</span>
+            </div>
+            <div class="store-upgrades" id="storeUpgrades"></div>
+          </section>
 
-        <section class="shop-block">
-          <div class="shop-block-header">
-            <h3>Buildings</h3>
-            <span>Make snakes while you wait</span>
-          </div>
-          <div class="buildings" id="buildings"></div>
-        </section>
+          <section class="shop-block">
+            <div class="shop-block-header">
+              <h3>Buildings</h3>
+              <span>Make snakes while you wait</span>
+            </div>
+            <div class="buildings" id="buildings"></div>
+          </section>
+        </div>
+
+        <div id="ascensionStore" hidden>
+          <section class="shop-block">
+            <div class="shop-block-header">
+              <h3>Permanent upgrades</h3>
+              <span id="ascensionShopBalance">0 heads</span>
+            </div>
+            <p class="ascension-copy">Spend gummy snake heads on upgrades that survive every ascension.</p>
+            <div class="ascension-upgrades" id="ascensionUpgrades"></div>
+            <button class="shop-toggle-button" id="returnToStore" type="button">Back to store</button>
+          </section>
+        </div>
 
         <p class="footer-note">Your stash saves automatically in this browser.</p>
       </aside>
@@ -780,6 +890,7 @@
   <script>
     const SAVE_KEY = "gummy-snake-clicker-save-v1";
     const THEME_KEY = "infinite-gummies-theme";
+    const ASCENSION_THRESHOLD = 1000000000;
 
     const buildingDefinitions = [
       {
@@ -948,6 +1059,48 @@
       }
     ];
 
+    const ascensionUpgradeDefinitions = [
+      {
+        id: "sugar-crown",
+        name: "Sugar Crown",
+        image: makeIcon("sour-sugar"),
+        description: "Permanently adds +1 snake to every click, even after ascending.",
+        effect: "+1 click forever",
+        cost: 1,
+        costMultiplier: 2,
+        maxPurchases: 20,
+        clickBonus: 1,
+        buildingMultiplier: 1,
+        startingGummies: 0
+      },
+      {
+        id: "eternal-batches",
+        name: "Eternal Batches",
+        image: makeIcon("rainbow-batch"),
+        description: "All buildings permanently make 10% more gummy snakes.",
+        effect: "+10% buildings forever",
+        cost: 2,
+        costMultiplier: 2,
+        maxPurchases: 20,
+        clickBonus: 0,
+        buildingMultiplier: 1.1,
+        startingGummies: 0
+      },
+      {
+        id: "starter-jar",
+        name: "Starter Jar",
+        image: makeIcon("jar"),
+        description: "Begin each new ascension with extra gummies already in the stash.",
+        effect: "+10,000 starting gummies",
+        cost: 3,
+        costMultiplier: 2,
+        maxPurchases: 10,
+        clickBonus: 0,
+        buildingMultiplier: 1,
+        startingGummies: 10000
+      }
+    ];
+
     function makeIcon(kind) {
       const svgs = {
         "mould": `
@@ -1093,8 +1246,11 @@
 
     const defaultState = {
       lollies: 0,
+      runGummiesEarned: 0,
       totalClicks: 0,
       clickPower: 1,
+      snakeHeads: 0,
+      ascensionUpgrades: Object.fromEntries(ascensionUpgradeDefinitions.map((upgrade) => [upgrade.id, 0])),
       storeUpgrades: Object.fromEntries(storeUpgradeDefinitions.map((upgrade) => [upgrade.id, 0])),
       buildings: Object.fromEntries(buildingDefinitions.map((building) => [building.id, 0]))
     };
@@ -1108,7 +1264,18 @@
     const buttonGain = document.querySelector("#buttonGain");
     const buttonGainLabel = document.querySelector("#buttonGainLabel");
     const lollyButton = document.querySelector("#lollyButton");
+    const snakeHeadCount = document.querySelector("#snakeHeadCount");
+    const ascendButton = document.querySelector("#ascendButton");
+    const ascendHint = document.querySelector("#ascendHint");
+    const openAscensionShop = document.querySelector("#openAscensionShop");
+    const returnToStore = document.querySelector("#returnToStore");
+    const shopTitle = document.querySelector("#shopTitle");
+    const shopSubtitle = document.querySelector("#shopSubtitle");
+    const normalStore = document.querySelector("#normalStore");
+    const ascensionStore = document.querySelector("#ascensionStore");
+    const ascensionShopBalance = document.querySelector("#ascensionShopBalance");
     const storeUpgradesContainer = document.querySelector("#storeUpgrades");
+    const ascensionUpgradesContainer = document.querySelector("#ascensionUpgrades");
     const buildingsContainer = document.querySelector("#buildings");
     const floaties = document.querySelector("#floaties");
     const themeToggle = document.querySelector("#themeToggle");
@@ -1117,18 +1284,24 @@
 
     initialiseTheme();
     renderStoreUpgrades();
+    renderAscensionUpgrades();
     renderBuildings();
     render();
 
     lollyButton.addEventListener("click", (event) => {
       const gained = getLolliesPerClick();
       state.lollies += gained;
+      state.runGummiesEarned += gained;
       state.totalClicks += 1;
       createFloaty(`+${formatNumber(gained)} ${pluraliseSnake(gained)}`, event.clientX, event.clientY);
       animateLolly();
       saveState();
       render();
     });
+
+    ascendButton.addEventListener("click", ascend);
+    openAscensionShop.addEventListener("click", () => showShop("ascension"));
+    returnToStore.addEventListener("click", () => showShop("store"));
 
     themeToggle.addEventListener("click", () => {
       const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
@@ -1150,6 +1323,7 @@
       const lolliesPerSecond = getLolliesPerSecond();
       if (lolliesPerSecond > 0) {
         state.lollies += lolliesPerSecond;
+        state.runGummiesEarned += lolliesPerSecond;
         saveState();
       }
 
@@ -1179,11 +1353,16 @@
         const parsedState = JSON.parse(savedState);
         const savedBuildings = parsedState.buildings ?? parsedState.upgrades ?? {};
         const storeUpgrades = normaliseStoreUpgrades(parsedState.storeUpgrades);
+        const ascensionUpgrades = normaliseAscensionUpgrades(parsedState.ascensionUpgrades);
+        const lollies = getSavedNumber(parsedState.lollies);
 
         return {
-          lollies: getSavedNumber(parsedState.lollies),
+          lollies,
+          runGummiesEarned: getSavedNumber(parsedState.runGummiesEarned ?? lollies),
           totalClicks: getSavedNumber(parsedState.totalClicks),
-          clickPower: getSavedClickPower(parsedState.clickPower, storeUpgrades),
+          clickPower: getSavedClickPower(parsedState.clickPower, storeUpgrades, ascensionUpgrades),
+          snakeHeads: getSavedNumber(parsedState.snakeHeads),
+          ascensionUpgrades,
           storeUpgrades,
           buildings: {
             ...defaultState.buildings,
@@ -1203,6 +1382,7 @@
       const roundedLollies = Math.floor(state.lollies);
       const currentPerClick = getLolliesPerClick();
       const currentPerSecond = getLolliesPerSecond();
+      const pendingHeads = getPendingSnakeHeads();
 
       lollyCount.textContent = formatGummyCount(roundedLollies);
       lollyLabel.textContent = roundedLollies === 1 ? "gummy snake in the stash" : "gummy snakes in the stash";
@@ -1210,6 +1390,13 @@
       perSecond.textContent = formatRate(currentPerSecond);
       buttonGain.textContent = formatRate(currentPerClick);
       buttonGainLabel.textContent = pluraliseSnake(currentPerClick);
+      snakeHeadCount.textContent = formatNumber(state.snakeHeads);
+      ascendButton.disabled = pendingHeads <= 0;
+      ascendButton.textContent = pendingHeads > 0
+        ? `Ascend for ${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}`
+        : "Ascend at 1 billion";
+      ascendHint.textContent = `This run: ${formatGummyCount(state.runGummiesEarned)} gummies earned. 1 head per 1 billion.`;
+      ascensionShopBalance.textContent = `${formatNumber(state.snakeHeads)} ${pluraliseHead(state.snakeHeads)}`;
 
       for (const upgrade of storeUpgradeDefinitions) {
         const owned = getStoreUpgradeCount(upgrade);
@@ -1233,6 +1420,20 @@
         buildingCard.querySelector(".building-meta").textContent = getBuildingRateText(building);
         buildingCard.disabled = state.lollies < cost;
       }
+
+      for (const upgrade of ascensionUpgradeDefinitions) {
+        const owned = getAscensionUpgradeCount(upgrade);
+        const maxed = isAscensionUpgradeMaxed(upgrade);
+        const cost = getAscensionUpgradeCost(upgrade);
+        const upgradeCard = document.querySelector(`[data-ascension-upgrade="${upgrade.id}"]`);
+
+        upgradeCard.classList.toggle("owned", owned > 0);
+        upgradeCard.disabled = maxed || state.snakeHeads < cost;
+        upgradeCard.querySelector(".owned").textContent = upgrade.maxPurchases
+          ? `${formatNumber(owned)}/${formatNumber(upgrade.maxPurchases)}`
+          : formatNumber(owned);
+        upgradeCard.querySelector(".cost").textContent = maxed ? "Maxed" : `${formatNumber(cost)} ${pluraliseHead(cost)}`;
+      }
     }
 
     function renderStoreUpgrades() {
@@ -1255,6 +1456,37 @@
 
         card.addEventListener("click", () => buyStoreUpgrade(upgrade));
         storeUpgradesContainer.append(card);
+      }
+    }
+
+    function renderAscensionUpgrades() {
+      ascensionUpgradesContainer.innerHTML = "";
+
+      for (const upgrade of ascensionUpgradeDefinitions) {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "building ascension-upgrade";
+        card.dataset.ascensionUpgrade = upgrade.id;
+        card.title = upgrade.description;
+
+        card.innerHTML = `
+          <span class="building-icon" aria-hidden="true"><img src="${upgrade.image}" alt=""></span>
+          <span class="building-info">
+            <span class="building-name">${upgrade.name}</span>
+            <span class="building-description">${upgrade.description}</span>
+            <span class="building-meta">${upgrade.effect}</span>
+          </span>
+          <span class="building-purchase">
+            <span class="building-owned">
+              <span class="building-owned-label">Owned</span>
+              <span class="building-owned-count owned">0</span>
+            </span>
+            <span class="building-price cost">0 heads</span>
+          </span>
+        `;
+
+        card.addEventListener("click", () => buyAscensionUpgrade(upgrade));
+        ascensionUpgradesContainer.append(card);
       }
     }
 
@@ -1303,6 +1535,22 @@
       render();
     }
 
+    function buyAscensionUpgrade(upgrade) {
+      const cost = getAscensionUpgradeCost(upgrade);
+      if (isAscensionUpgradeMaxed(upgrade) || state.snakeHeads < cost) {
+        return;
+      }
+
+      state.snakeHeads -= cost;
+      state.ascensionUpgrades[upgrade.id] = getAscensionUpgradeCount(upgrade) + 1;
+      if (upgrade.clickBonus > 0) {
+        state.clickPower += upgrade.clickBonus;
+      }
+
+      saveState();
+      render();
+    }
+
     function buyBuilding(building) {
       const cost = getBuildingCost(building);
       if (state.lollies < cost) {
@@ -1315,6 +1563,45 @@
       render();
     }
 
+    function ascend() {
+      const pendingHeads = getPendingSnakeHeads();
+      if (pendingHeads <= 0) {
+        return;
+      }
+
+      const confirmed = confirm(`Ascend for ${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}? This resets your current gummies, run upgrades, and buildings, but keeps permanent upgrades.`);
+      if (!confirmed) {
+        return;
+      }
+
+      state.snakeHeads += pendingHeads;
+      resetRun();
+      saveState();
+      showShop("ascension");
+      renderStoreUpgrades();
+      renderBuildings();
+      renderAscensionUpgrades();
+      render();
+    }
+
+    function resetRun() {
+      state.lollies = getAscensionStartingGummies();
+      state.runGummiesEarned = state.lollies;
+      state.totalClicks = 0;
+      state.clickPower = getAscensionBaseClickPower();
+      state.storeUpgrades = Object.fromEntries(storeUpgradeDefinitions.map((upgrade) => [upgrade.id, 0]));
+      state.buildings = Object.fromEntries(buildingDefinitions.map((building) => [building.id, 0]));
+    }
+
+    function showShop(shop) {
+      const showingAscension = shop === "ascension";
+      normalStore.hidden = showingAscension;
+      ascensionStore.hidden = !showingAscension;
+      shopTitle.textContent = showingAscension ? "Head Shop" : "Store";
+      shopSubtitle.textContent = showingAscension ? "Permanent upgrades" : "Gummy stock";
+      render();
+    }
+
     function getBuildingCost(building) {
       const owned = state.buildings[building.id] ?? 0;
       return Math.ceil(building.baseCost * building.costMultiplier ** owned);
@@ -1324,13 +1611,25 @@
       return Math.ceil(upgrade.cost * upgrade.costMultiplier ** getStoreUpgradeCount(upgrade));
     }
 
+    function getAscensionUpgradeCost(upgrade) {
+      return Math.ceil(upgrade.cost * upgrade.costMultiplier ** getAscensionUpgradeCount(upgrade));
+    }
+
     function getStoreUpgradeCount(upgrade) {
       return normaliseStoreUpgradeValue(state.storeUpgrades[upgrade.id]);
+    }
+
+    function getAscensionUpgradeCount(upgrade) {
+      return normaliseStoreUpgradeValue(state.ascensionUpgrades[upgrade.id]);
     }
 
     function isStoreUpgradeMaxed(upgrade) {
       const owned = getStoreUpgradeCount(upgrade);
       return upgrade.maxPurchases ? owned >= upgrade.maxPurchases : !upgrade.repeatable && owned > 0;
+    }
+
+    function isAscensionUpgradeMaxed(upgrade) {
+      return upgrade.maxPurchases ? getAscensionUpgradeCount(upgrade) >= upgrade.maxPurchases : false;
     }
 
     function getStoreUpgradeOwnedText(upgrade, owned) {
@@ -1360,9 +1659,11 @@
     }
 
     function getBuildingMultiplier() {
-      return storeUpgradeDefinitions.reduce((multiplier, upgrade) => {
+      const runMultiplier = storeUpgradeDefinitions.reduce((multiplier, upgrade) => {
         return getStoreUpgradeCount(upgrade) > 0 ? multiplier * upgrade.buildingMultiplier : multiplier;
       }, 1);
+
+      return runMultiplier * getAscensionBuildingMultiplier();
     }
 
     function applyClickUpgrade(upgrade) {
@@ -1375,11 +1676,39 @@
       }));
     }
 
-    function getSavedClickPower(savedClickPower, storeUpgrades = {}) {
+    function normaliseAscensionUpgrades(savedUpgrades = {}) {
+      return Object.fromEntries(ascensionUpgradeDefinitions.map((upgrade) => {
+        return [upgrade.id, normaliseStoreUpgradeValue(savedUpgrades[upgrade.id])];
+      }));
+    }
+
+    function getPendingSnakeHeads() {
+      return Math.floor(state.runGummiesEarned / ASCENSION_THRESHOLD);
+    }
+
+    function getAscensionBaseClickPower(upgrades = state.ascensionUpgrades) {
+      return ascensionUpgradeDefinitions.reduce((total, upgrade) => {
+        return total + upgrade.clickBonus * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+      }, 1);
+    }
+
+    function getAscensionBuildingMultiplier(upgrades = state.ascensionUpgrades) {
+      return ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
+        return multiplier * upgrade.buildingMultiplier ** normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+      }, 1);
+    }
+
+    function getAscensionStartingGummies(upgrades = state.ascensionUpgrades) {
+      return ascensionUpgradeDefinitions.reduce((total, upgrade) => {
+        return total + upgrade.startingGummies * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+      }, 0);
+    }
+
+    function getSavedClickPower(savedClickPower, storeUpgrades = {}, ascensionUpgrades = {}) {
       const clickPower = Number(savedClickPower);
       return Number.isFinite(clickPower) && clickPower >= 1
         ? clickPower
-        : deriveLegacyClickPower(storeUpgrades);
+        : deriveLegacyClickPower(storeUpgrades) + getAscensionBaseClickPower(ascensionUpgrades) - 1;
     }
 
     function deriveLegacyClickPower(storeUpgrades = {}) {
