@@ -1200,7 +1200,7 @@
       const currentPerClick = getLolliesPerClick();
       const currentPerSecond = getLolliesPerSecond();
 
-      lollyCount.textContent = formatNumber(roundedLollies);
+      lollyCount.textContent = formatGummyCount(roundedLollies);
       lollyLabel.textContent = roundedLollies === 1 ? "gummy snake in the stash" : "gummy snakes in the stash";
       perClick.textContent = formatRate(currentPerClick);
       perSecond.textContent = formatRate(currentPerSecond);
@@ -1383,6 +1383,20 @@
 
     function formatNumber(value) {
       return Math.floor(value).toLocaleString("en-AU");
+    }
+
+    function formatGummyCount(value) {
+      const roundedValue = Math.floor(value);
+      if (roundedValue < 1000000) {
+        return formatNumber(roundedValue);
+      }
+
+      const millions = Math.floor(roundedValue / 100000) / 10;
+      const formattedMillions = Number.isInteger(millions)
+        ? millions.toLocaleString("en-AU")
+        : millions.toLocaleString("en-AU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+      return `${formattedMillions} million`;
     }
 
     function formatRate(value) {
