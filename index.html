@@ -1458,10 +1458,10 @@
       buttonGain.textContent = formatRate(currentPerClick);
       buttonGainLabel.textContent = pluraliseSnake(currentPerClick);
       snakeHeadCount.textContent = formatNumber(state.snakeHeads);
-      ascendButton.disabled = pendingHeads <= 0;
+      ascendButton.disabled = false;
       ascendButton.textContent = pendingHeads > 0
         ? `Ascend for ${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}`
-        : "Ascend at 1 billion";
+        : "Ascend for 0 heads";
       ascendHint.textContent = getAscendHintText();
       ascensionShopBalance.textContent = `${formatNumber(state.snakeHeads)} ${pluraliseHead(state.snakeHeads)}`;
 
@@ -1632,11 +1632,10 @@
 
     function ascend() {
       const pendingHeads = getPendingSnakeHeads();
-      if (pendingHeads <= 0) {
-        return;
-      }
-
-      const confirmed = confirm(`Ascend for ${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}? This resets your current gummies, run upgrades, and buildings, but keeps permanent upgrades.`);
+      const rewardText = pendingHeads > 0
+        ? `${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}`
+        : "0 heads";
+      const confirmed = confirm(`Ascend for ${rewardText}? This resets your current gummies, run upgrades, and buildings, but keeps permanent upgrades.`);
       if (!confirmed) {
         return;
       }
