@@ -878,6 +878,7 @@
             </div>
             <p class="ascension-copy">Spend gummy snake heads on upgrades that survive every ascension.</p>
             <div class="ascension-upgrades" id="ascensionUpgrades"></div>
+            <button class="ascend-button" id="completeAscension" type="button">Ascend and reset run</button>
             <button class="shop-toggle-button" id="returnToStore" type="button">Back to store</button>
           </section>
         </div>
@@ -1408,6 +1409,7 @@
     const ascendButton = document.querySelector("#ascendButton");
     const ascendHint = document.querySelector("#ascendHint");
     const openAscensionShop = document.querySelector("#openAscensionShop");
+    const completeAscension = document.querySelector("#completeAscension");
     const returnToStore = document.querySelector("#returnToStore");
     const shopTitle = document.querySelector("#shopTitle");
     const shopSubtitle = document.querySelector("#shopSubtitle");
@@ -1439,8 +1441,9 @@
       render();
     });
 
-    ascendButton.addEventListener("click", ascend);
+    ascendButton.addEventListener("click", () => showShop("ascension"));
     openAscensionShop.addEventListener("click", () => showShop("ascension"));
+    completeAscension.addEventListener("click", completeAscensionReset);
     returnToStore.addEventListener("click", () => showShop("store"));
 
     themeToggle.addEventListener("click", () => {
@@ -1533,8 +1536,11 @@
       snakeHeadCount.textContent = formatNumber(state.snakeHeads);
       ascendButton.disabled = false;
       ascendButton.textContent = pendingHeads > 0
-        ? `Ascend for ${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}`
-        : "Ascend for 0 heads";
+        ? `Open Head Shop (${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)} ready)`
+        : "Open Head Shop";
+      completeAscension.textContent = pendingHeads > 0
+        ? `Ascend and claim ${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}`
+        : "Ascend and reset for 0 heads";
       ascendHint.textContent = getAscendHintText();
       ascensionShopBalance.textContent = `${formatNumber(state.snakeHeads)} ${pluraliseHead(state.snakeHeads)}`;
 
@@ -1703,7 +1709,7 @@
       render();
     }
 
-    function ascend() {
+    function completeAscensionReset() {
       const pendingHeads = getPendingSnakeHeads();
       const rewardText = pendingHeads > 0
         ? `${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}`
