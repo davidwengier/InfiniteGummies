@@ -1216,7 +1216,7 @@
         upgradeCard.classList.toggle("owned", owned > 0);
         upgradeCard.disabled = maxed || state.lollies < cost;
         upgradeCard.querySelector(".store-upgrade-owned").textContent = upgrade.repeatable ? `Owned: ${formatNumber(owned)}` : owned > 0 ? "Bought" : "Not bought";
-        upgradeCard.querySelector(".store-upgrade-price").textContent = maxed ? "Bought" : `${formatNumber(cost)} snakes`;
+        upgradeCard.querySelector(".store-upgrade-price").textContent = maxed ? "Bought" : `${formatGummyCount(cost)} snakes`;
       }
 
       for (const building of buildingDefinitions) {
@@ -1225,7 +1225,7 @@
         const buildingCard = document.querySelector(`[data-building="${building.id}"]`);
 
         buildingCard.querySelector(".owned").textContent = formatNumber(owned);
-        buildingCard.querySelector(".cost").textContent = `${formatNumber(cost)} snakes`;
+        buildingCard.querySelector(".cost").textContent = `${formatGummyCount(cost)} snakes`;
         buildingCard.querySelector(".building-meta").textContent = getBuildingRateText(building);
         buildingCard.disabled = state.lollies < cost;
       }
@@ -1346,7 +1346,7 @@
     }
 
     function getBuildingRateText(building) {
-      return `${formatRate(getBuildingPerSecond(building))} snakes/sec each`;
+      return `${formatGummyCount(getBuildingPerSecond(building))} snakes/sec each`;
     }
 
     function getBuildingMultiplier() {
