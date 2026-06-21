@@ -897,11 +897,12 @@
         id: "sour-sugar-coat",
         name: "Sour Sugar Coat",
         image: makeIcon("sour-sugar"),
-        description: "Adds +1 snake to every click.",
-        effect: "+1 click",
+        description: "Doubles your snakes per click every time you buy it.",
+        effect: "x2 clicks",
         cost: 15,
         costMultiplier: 1.35,
-        clickBonus: 1,
+        clickBonus: 0,
+        clickMultiplier: 2,
         buildingMultiplier: 1,
         repeatable: true
       },
@@ -914,6 +915,7 @@
         cost: 70,
         costMultiplier: 1.45,
         clickBonus: 4,
+        clickMultiplier: 1,
         buildingMultiplier: 1,
         repeatable: true
       },
@@ -926,6 +928,7 @@
         cost: 300,
         costMultiplier: 1,
         clickBonus: 0,
+        clickMultiplier: 1,
         buildingMultiplier: 1.25,
         repeatable: false
       },
@@ -938,6 +941,7 @@
         cost: 1500,
         costMultiplier: 1,
         clickBonus: 0,
+        clickMultiplier: 1,
         buildingMultiplier: 1.5,
         repeatable: false
       }
@@ -1324,9 +1328,11 @@
     }
 
     function getLolliesPerClick() {
-      return storeUpgradeDefinitions.reduce((total, upgrade) => {
+      const clickBonusTotal = storeUpgradeDefinitions.reduce((total, upgrade) => {
         return total + upgrade.clickBonus * getStoreUpgradeCount(upgrade);
       }, 1);
+
+      return clickBonusTotal * getClickMultiplier();
     }
 
     function getLolliesPerSecond() {
@@ -1346,6 +1352,12 @@
     function getBuildingMultiplier() {
       return storeUpgradeDefinitions.reduce((multiplier, upgrade) => {
         return getStoreUpgradeCount(upgrade) > 0 ? multiplier * upgrade.buildingMultiplier : multiplier;
+      }, 1);
+    }
+
+    function getClickMultiplier() {
+      return storeUpgradeDefinitions.reduce((multiplier, upgrade) => {
+        return multiplier * upgrade.clickMultiplier ** getStoreUpgradeCount(upgrade);
       }, 1);
     }
 
