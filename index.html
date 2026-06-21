@@ -1094,6 +1094,7 @@
     const defaultState = {
       lollies: 0,
       totalClicks: 0,
+      clickPower: 1,
       storeUpgrades: Object.fromEntries(storeUpgradeDefinitions.map((upgrade) => [upgrade.id, 0])),
       buildings: Object.fromEntries(buildingDefinitions.map((building) => [building.id, 0]))
     };
@@ -1177,11 +1178,13 @@
       try {
         const parsedState = JSON.parse(savedState);
         const savedBuildings = parsedState.buildings ?? parsedState.upgrades ?? {};
+        const storeUpgrades = normaliseStoreUpgrades(parsedState.storeUpgrades);
 
         return {
           lollies: getSavedNumber(parsedState.lollies),
           totalClicks: getSavedNumber(parsedState.totalClicks),
-          storeUpgrades: normaliseStoreUpgrades(parsedState.storeUpgrades),
+          clickPower: getSavedClickPower(parsedState.clickPower, storeUpgrades),
+          storeUpgrades,
           buildings: {
             ...defaultState.buildings,
             ...savedBuildings
@@ -1293,6 +1296,7 @@
       }
 
       state.lollies -= cost;
+      applyClickUpgrade(upgrade);
       state.storeUpgrades[upgrade.id] = getStoreUpgradeCount(upgrade) + 1;
       saveState();
       renderBuildings();
@@ -1338,11 +1342,7 @@
     }
 
     function getLolliesPerClick() {
-      const clickBonusTotal = storeUpgradeDefinitions.reduce((total, upgrade) => {
-        return total + upgrade.clickBonus * getStoreUpgradeCount(upgrade);
-      }, 1);
-
-      return clickBonusTotal * getClickMultiplier();
+      return getSavedClickPower(state.clickPower, state.storeUpgrades);
     }
 
     function getLolliesPerSecond() {
@@ -1365,16 +1365,32 @@
       }, 1);
     }
 
-    function getClickMultiplier() {
-      return storeUpgradeDefinitions.reduce((multiplier, upgrade) => {
-        return multiplier * upgrade.clickMultiplier ** getStoreUpgradeCount(upgrade);
-      }, 1);
+    function applyClickUpgrade(upgrade) {
+      state.clickPower = getLolliesPerClick() * upgrade.clickMultiplier + upgrade.clickBonus;
     }
 
     function normaliseStoreUpgrades(savedUpgrades = {}) {
       return Object.fromEntries(storeUpgradeDefinitions.map((upgrade) => {
         return [upgrade.id, normaliseStoreUpgradeValue(savedUpgrades[upgrade.id])];
       }));
+    }
+
+    function getSavedClickPower(savedClickPower, storeUpgrades = {}) {
+      const clickPower = Number(savedClickPower);
+      return Number.isFinite(clickPower) && clickPower >= 1
+        ? clickPower
+        : deriveLegacyClickPower(storeUpgrades);
+    }
+
+    function deriveLegacyClickPower(storeUpgrades = {}) {
+      const clickBonusTotal = storeUpgradeDefinitions.reduce((total, upgrade) => {
+        return total + upgrade.clickBonus * normaliseStoreUpgradeValue(storeUpgrades[upgrade.id]);
+      }, 1);
+      const clickMultiplier = storeUpgradeDefinitions.reduce((multiplier, upgrade) => {
+        return multiplier * upgrade.clickMultiplier ** normaliseStoreUpgradeValue(storeUpgrades[upgrade.id]);
+      }, 1);
+
+      return clickBonusTotal * clickMultiplier;
     }
 
     function normaliseStoreUpgradeValue(value) {
