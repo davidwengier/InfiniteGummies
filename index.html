@@ -897,8 +897,8 @@
         id: "sour-sugar-coat",
         name: "Sour Sugar Coat",
         image: makeIcon("sour-sugar"),
-        description: "Doubles your base click before +click bonuses.",
-        effect: "x2 base click",
+        description: "Doubles your snakes per click every time you buy it.",
+        effect: "x2 clicks",
         cost: 15,
         costMultiplier: 1.35,
         clickBonus: 0,
@@ -1328,12 +1328,11 @@
     }
 
     function getLolliesPerClick() {
-      const baseClickTotal = 1 * getClickMultiplier();
       const clickBonusTotal = storeUpgradeDefinitions.reduce((total, upgrade) => {
         return total + upgrade.clickBonus * getStoreUpgradeCount(upgrade);
-      }, 0);
+      }, 1);
 
-      return baseClickTotal + clickBonusTotal;
+      return clickBonusTotal * getClickMultiplier();
     }
 
     function getLolliesPerSecond() {
