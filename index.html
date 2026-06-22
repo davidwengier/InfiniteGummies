@@ -898,8 +898,11 @@
               <h3>Buildings</h3>
               <span>Make snakes while you wait</span>
             </div>
-            <div class="building-buy-controls" aria-label="Building buy amount">
-              <span>Buy</span>
+            <div class="building-buy-controls" aria-label="Building action and amount">
+              <span>Action</span>
+              <button class="building-buy-button active" type="button" data-building-action="buy">Buy</button>
+              <button class="building-buy-button" type="button" data-building-action="sell">Sell</button>
+              <span>Amount</span>
               <button class="building-buy-button active" type="button" data-building-buy="1">1</button>
               <button class="building-buy-button" type="button" data-building-buy="10">10</button>
               <button class="building-buy-button" type="button" data-building-buy="100">100</button>
@@ -931,6 +934,7 @@
     const SAVE_KEY = "gummy-snake-clicker-save-v1";
     const THEME_KEY = "infinite-gummies-theme";
     const ASCENSION_THRESHOLD = 1000000000;
+    const BUILDING_SELL_REFUND_RATE = 0.25;
 
     const buildingDefinitions = [
       {
@@ -1510,6 +1514,7 @@
     };
 
     let state = loadState();
+    let buildingActionMode = "buy";
     let buildingBuyMode = "1";
 
     const lollyCount = document.querySelector("#lollyCount");
@@ -1532,6 +1537,7 @@
     const storeUpgradesContainer = document.querySelector("#storeUpgrades");
     const ascensionUpgradesContainer = document.querySelector("#ascensionUpgrades");
     const buildingsContainer = document.querySelector("#buildings");
+    const buildingActionButtons = document.querySelectorAll("[data-building-action]");
     const buildingBuyButtons = document.querySelectorAll("[data-building-buy]");
     const floaties = document.querySelector("#floaties");
     const themeToggle = document.querySelector("#themeToggle");
@@ -1560,6 +1566,13 @@
     ascendButton.addEventListener("click", () => showShop("ascension"));
     completeAscension.addEventListener("click", completeAscensionReset);
     returnToStore.addEventListener("click", () => showShop("store"));
+
+    buildingActionButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        buildingActionMode = button.dataset.buildingAction;
+        render();
+      });
+    });
 
     buildingBuyButtons.forEach((button) => {
       button.addEventListener("click", () => {
@@ -1666,6 +1679,10 @@
       ascendHint.textContent = getAscendHintText();
       ascensionShopBalance.textContent = `${formatNumber(state.snakeHeads)} ${pluraliseHead(state.snakeHeads)}`;
 
+      buildingActionButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.buildingAction === buildingActionMode);
+      });
+
       buildingBuyButtons.forEach((button) => {
         button.classList.toggle("active", button.dataset.buildingBuy === buildingBuyMode);
       });
@@ -1685,12 +1702,18 @@
       for (const building of buildingDefinitions) {
         const owned = state.buildings[building.id] ?? 0;
         const purchase = getBuildingPurchase(building);
+        const sale = getBuildingSale(building);
         const buildingCard = document.querySelector(`[data-building="${building.id}"]`);
+        const canAct = buildingActionMode === "sell"
+          ? sale.quantity > 0
+          : purchase.quantity > 0 && state.lollies >= purchase.cost;
 
         buildingCard.querySelector(".owned").textContent = formatNumber(owned);
-        buildingCard.querySelector(".cost").textContent = getBuildingPurchaseText(purchase);
+        buildingCard.querySelector(".cost").textContent = buildingActionMode === "sell"
+          ? getBuildingSaleText(sale)
+          : getBuildingPurchaseText(purchase);
         buildingCard.querySelector(".building-meta").textContent = getBuildingRateText(building);
-        buildingCard.disabled = purchase.quantity <= 0 || state.lollies < purchase.cost;
+        buildingCard.disabled = !canAct;
       }
 
       for (const upgrade of ascensionUpgradeDefinitions) {
@@ -1788,7 +1811,7 @@
           </span>
         `;
 
-        card.addEventListener("click", () => buyBuilding(building));
+        card.addEventListener("click", () => buildingActionMode === "sell" ? sellBuilding(building) : buyBuilding(building));
         buildingsContainer.append(card);
       }
     }
@@ -1832,6 +1855,18 @@
 
       state.lollies -= purchase.cost;
       state.buildings[building.id] = (state.buildings[building.id] ?? 0) + purchase.quantity;
+      saveState();
+      render();
+    }
+
+    function sellBuilding(building) {
+      const sale = getBuildingSale(building);
+      if (sale.quantity <= 0) {
+        return;
+      }
+
+      state.buildings[building.id] = (state.buildings[building.id] ?? 0) - sale.quantity;
+      state.lollies += sale.refund;
       saveState();
       render();
     }
@@ -1900,6 +1935,18 @@
       };
     }
 
+    function getBuildingSale(building) {
+      const owned = state.buildings[building.id] ?? 0;
+      const quantity = buildingBuyMode === "max"
+        ? owned
+        : Math.min(Number.parseInt(buildingBuyMode, 10) || 1, owned);
+
+      return {
+        quantity,
+        refund: getBulkBuildingRefund(building, quantity, owned)
+      };
+    }
+
     function getBulkBuildingCost(building, quantity, owned = state.buildings[building.id] ?? 0) {
       let cost = 0;
 
@@ -1908,6 +1955,16 @@
       }
 
       return cost;
+    }
+
+    function getBulkBuildingRefund(building, quantity, owned = state.buildings[building.id] ?? 0) {
+      let refund = 0;
+
+      for (let index = 0; index < quantity; index += 1) {
+        refund += Math.floor(getBuildingCostAt(building, owned - index - 1) * BUILDING_SELL_REFUND_RATE);
+      }
+
+      return refund;
     }
 
     function getMaxAffordableBuildingQuantity(building, budget) {
@@ -1948,6 +2005,24 @@
       }
 
       return `${formatNumber(purchase.quantity)} for ${formatGummyCount(purchase.cost)} snakes`;
+    }
+
+    function getBuildingSaleText(sale) {
+      if (buildingBuyMode === "max") {
+        return sale.quantity > 0
+          ? `Sell max: ${formatNumber(sale.quantity)} for ${formatGummyCount(sale.refund)} snakes`
+          : "Sell max: none owned";
+      }
+
+      if (sale.quantity <= 0) {
+        return "None owned";
+      }
+
+      if (sale.quantity === 1) {
+        return `Sell for ${formatGummyCount(sale.refund)} snakes`;
+      }
+
+      return `Sell ${formatNumber(sale.quantity)} for ${formatGummyCount(sale.refund)} snakes`;
     }
 
     function getStoreUpgradeCost(upgrade) {
