@@ -1734,7 +1734,7 @@
     function renderAscensionUpgrades() {
       ascensionUpgradesContainer.innerHTML = "";
 
-      for (const upgrade of ascensionUpgradeDefinitions) {
+      for (const upgrade of getAscensionUpgradesByCurrentCost()) {
         const card = document.createElement("button");
         card.type = "button";
         card.className = "building ascension-upgrade";
@@ -1820,6 +1820,7 @@
       }
 
       saveState();
+      renderAscensionUpgrades();
       render();
     }
 
@@ -1956,6 +1957,19 @@
 
     function getAscensionUpgradeCost(upgrade) {
       return Math.ceil(upgrade.cost * upgrade.costMultiplier ** getAscensionUpgradeCount(upgrade));
+    }
+
+    function getAscensionUpgradesByCurrentCost() {
+      return [...ascensionUpgradeDefinitions].sort((left, right) => {
+        const leftMaxed = isAscensionUpgradeMaxed(left);
+        const rightMaxed = isAscensionUpgradeMaxed(right);
+        if (leftMaxed !== rightMaxed) {
+          return leftMaxed ? 1 : -1;
+        }
+
+        const costDifference = getAscensionUpgradeCost(left) - getAscensionUpgradeCost(right);
+        return costDifference || left.name.localeCompare(right.name);
+      });
     }
 
     function roundCost(value, discountMultiplier = 1) {
