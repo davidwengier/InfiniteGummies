@@ -1108,6 +1108,49 @@
         repeatable: true
       },
       {
+        id: "bulk-lolly-bags",
+        name: "Bulk Lolly Bags",
+        image: makeIcon("party-label"),
+        description: "Buying in bulk makes every building 5% cheaper this run.",
+        effect: "-5% building costs",
+        cost: 1200,
+        costMultiplier: 1,
+        clickBonus: 0,
+        clickMultiplier: 1,
+        buildingMultiplier: 1,
+        buildingCostMultiplier: 0.95,
+        repeatable: false
+      },
+      {
+        id: "snake-synergy",
+        name: "Snake Synergy",
+        image: makeIcon("rainbow-batch"),
+        description: "Every different building you own adds 2% to all building output.",
+        effect: "+2% buildings per type",
+        cost: 25000,
+        costMultiplier: 1,
+        clickBonus: 0,
+        clickMultiplier: 1,
+        buildingMultiplier: 1,
+        buildingSynergyBonus: 0.02,
+        repeatable: false
+      },
+      {
+        id: "double-headed-snakes",
+        name: "Double-Headed Snakes",
+        image: makeIcon("sour-sugar"),
+        description: "Clicks have a 5% chance to find a double-headed snake worth 10x.",
+        effect: "5% chance for x10 clicks",
+        cost: 125000,
+        costMultiplier: 1,
+        clickBonus: 0,
+        clickMultiplier: 1,
+        clickCriticalChance: 0.05,
+        clickCriticalMultiplier: 10,
+        buildingMultiplier: 1,
+        repeatable: false
+      },
+      {
         id: "sticky-fingers",
         name: "Sticky Conveyor",
         image: makeIcon("factory"),
@@ -1256,6 +1299,20 @@
         maxPurchases: 2,
         clickBonus: 100,
         buildingMultiplier: 1,
+        startingGummies: 0
+      },
+      {
+        id: "ancient-recipe-book",
+        name: "Ancient Recipe Book",
+        image: makeIcon("recipe"),
+        description: "Old lolly secrets make store upgrades permanently cheaper.",
+        effect: "-5% store upgrade costs forever",
+        cost: 12,
+        costMultiplier: 2,
+        maxPurchases: 5,
+        clickBonus: 0,
+        buildingMultiplier: 1,
+        storeUpgradeCostMultiplier: 0.95,
         startingGummies: 0
       }
     ].concat(buildingAscensionUpgradeDefinitions);
@@ -1488,11 +1545,13 @@
     render();
 
     lollyButton.addEventListener("click", (event) => {
-      const gained = getLolliesPerClick();
+      const click = getClickGain();
+      const gained = click.gained;
       state.lollies += gained;
       state.runGummiesEarned += gained;
       state.totalClicks += 1;
-      createFloaty(`+${formatNumber(gained)} ${pluraliseSnake(gained)}`, event.clientX, event.clientY);
+      const bonusText = click.isCritical ? " Double-headed!" : "";
+      createFloaty(`+${formatGummyCount(gained)} ${pluraliseSnake(gained)}${bonusText}`, event.clientX, event.clientY);
       animateLolly();
       saveState();
       render();
@@ -1820,7 +1879,8 @@
     }
 
     function getBuildingCostAt(building, owned) {
-      return Math.ceil(building.baseCost * building.costMultiplier ** owned);
+      const discountMultiplier = getBuildingCostMultiplier();
+      return roundCost(building.baseCost * building.costMultiplier ** owned * discountMultiplier, discountMultiplier);
     }
 
     function getBuildingPurchase(building) {
@@ -1857,7 +1917,7 @@
       }
 
       const multiplier = building.costMultiplier;
-      const firstCost = building.baseCost * multiplier ** owned;
+      const firstCost = building.baseCost * multiplier ** owned * getBuildingCostMultiplier();
       let quantity = Math.floor(Math.log(1 + (budget * (multiplier - 1)) / firstCost) / Math.log(multiplier));
 
       if (!Number.isFinite(quantity) || quantity < 1) {
@@ -1890,11 +1950,16 @@
     }
 
     function getStoreUpgradeCost(upgrade) {
-      return Math.ceil(upgrade.cost * upgrade.costMultiplier ** getStoreUpgradeCount(upgrade));
+      const discountMultiplier = getStoreUpgradeCostMultiplier();
+      return roundCost(upgrade.cost * upgrade.costMultiplier ** getStoreUpgradeCount(upgrade) * discountMultiplier, discountMultiplier);
     }
 
     function getAscensionUpgradeCost(upgrade) {
       return Math.ceil(upgrade.cost * upgrade.costMultiplier ** getAscensionUpgradeCount(upgrade));
+    }
+
+    function roundCost(value, discountMultiplier = 1) {
+      return Math.max(1, discountMultiplier < 1 ? Math.floor(value) : Math.ceil(value));
     }
 
     function getBuildingAscensionUpgradeCost(index) {
@@ -1930,6 +1995,40 @@
       return getSavedClickPower(state.clickPower, state.storeUpgrades);
     }
 
+    function getBuildingCostMultiplier() {
+      return storeUpgradeDefinitions.reduce((multiplier, upgrade) => {
+        return multiplier * (upgrade.buildingCostMultiplier ?? 1) ** getStoreUpgradeCount(upgrade);
+      }, 1);
+    }
+
+    function getStoreUpgradeCostMultiplier() {
+      return ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
+        return multiplier * (upgrade.storeUpgradeCostMultiplier ?? 1) ** getAscensionUpgradeCount(upgrade);
+      }, 1);
+    }
+
+    function getClickGain() {
+      const baseGain = getLolliesPerClick();
+      const criticalMultiplier = getClickCriticalMultiplier();
+      const isCritical = criticalMultiplier > 1 && Math.random() < getClickCriticalChance();
+      return {
+        gained: isCritical ? baseGain * criticalMultiplier : baseGain,
+        isCritical
+      };
+    }
+
+    function getClickCriticalChance() {
+      return storeUpgradeDefinitions.reduce((chance, upgrade) => {
+        return chance + (upgrade.clickCriticalChance ?? 0) * getStoreUpgradeCount(upgrade);
+      }, 0);
+    }
+
+    function getClickCriticalMultiplier() {
+      return storeUpgradeDefinitions.reduce((multiplier, upgrade) => {
+        return getStoreUpgradeCount(upgrade) > 0 ? Math.max(multiplier, upgrade.clickCriticalMultiplier ?? 1) : multiplier;
+      }, 1);
+    }
+
     function getLolliesPerSecond() {
       return buildingDefinitions.reduce((total, building) => {
         return total + getBuildingPerSecond(building) * (state.buildings[building.id] ?? 0);
@@ -1949,7 +2048,16 @@
         return getStoreUpgradeCount(upgrade) > 0 ? multiplier * upgrade.buildingMultiplier : multiplier;
       }, 1);
 
-      return runMultiplier * getAscensionBuildingMultiplier() * getAscensionBuildingSpecificMultiplier(building);
+      return runMultiplier * getStoreBuildingSynergyMultiplier() * getAscensionBuildingMultiplier() * getAscensionBuildingSpecificMultiplier(building);
+    }
+
+    function getStoreBuildingSynergyMultiplier() {
+      const ownedBuildingTypes = buildingDefinitions.filter((building) => (state.buildings[building.id] ?? 0) > 0).length;
+      const synergyBonus = storeUpgradeDefinitions.reduce((bonus, upgrade) => {
+        return bonus + (upgrade.buildingSynergyBonus ?? 0) * getStoreUpgradeCount(upgrade);
+      }, 0);
+
+      return 1 + ownedBuildingTypes * synergyBonus;
     }
 
     function applyClickUpgrade(upgrade) {
