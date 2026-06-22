@@ -1161,6 +1161,23 @@
       }
     ];
 
+    const buildingAscensionUpgradeDefinitions = buildingDefinitions.map((building, index) => ({
+      id: `${building.id}-mastery`,
+      name: `${building.name} Mastery`,
+      image: building.image,
+      description: `Every ${building.name} permanently makes twice as many gummy snakes.`,
+      effect: `x2 ${building.name} output`,
+      cost: getBuildingAscensionUpgradeCost(index),
+      costMultiplier: 2,
+      maxPurchases: 5,
+      clickBonus: 0,
+      buildingMultiplier: 1,
+      buildingMultipliers: {
+        [building.id]: 2
+      },
+      startingGummies: 0
+    }));
+
     const ascensionUpgradeDefinitions = [
       {
         id: "sugar-crown",
@@ -1241,7 +1258,7 @@
         buildingMultiplier: 1,
         startingGummies: 0
       }
-    ];
+    ].concat(buildingAscensionUpgradeDefinitions);
 
     function makeIcon(kind) {
       const svgs = {
@@ -1880,6 +1897,10 @@
       return Math.ceil(upgrade.cost * upgrade.costMultiplier ** getAscensionUpgradeCount(upgrade));
     }
 
+    function getBuildingAscensionUpgradeCost(index) {
+      return Math.max(1, Math.ceil(2 * 1.75 ** index));
+    }
+
     function getStoreUpgradeCount(upgrade) {
       return normaliseStoreUpgradeValue(state.storeUpgrades[upgrade.id]);
     }
@@ -1916,19 +1937,19 @@
     }
 
     function getBuildingPerSecond(building) {
-      return building.perSecond * getBuildingMultiplier();
+      return building.perSecond * getBuildingMultiplier(building);
     }
 
     function getBuildingRateText(building) {
       return `${formatRate(getBuildingPerSecond(building))} snakes/sec each`;
     }
 
-    function getBuildingMultiplier() {
+    function getBuildingMultiplier(building) {
       const runMultiplier = storeUpgradeDefinitions.reduce((multiplier, upgrade) => {
         return getStoreUpgradeCount(upgrade) > 0 ? multiplier * upgrade.buildingMultiplier : multiplier;
       }, 1);
 
-      return runMultiplier * getAscensionBuildingMultiplier();
+      return runMultiplier * getAscensionBuildingMultiplier() * getAscensionBuildingSpecificMultiplier(building);
     }
 
     function applyClickUpgrade(upgrade) {
@@ -1970,19 +1991,26 @@
 
     function getAscensionBaseClickPower(upgrades = state.ascensionUpgrades) {
       return ascensionUpgradeDefinitions.reduce((total, upgrade) => {
-        return total + upgrade.clickBonus * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+        return total + (upgrade.clickBonus ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 1);
     }
 
     function getAscensionBuildingMultiplier(upgrades = state.ascensionUpgrades) {
       return ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
-        return multiplier * upgrade.buildingMultiplier ** normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+        return multiplier * (upgrade.buildingMultiplier ?? 1) ** normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+      }, 1);
+    }
+
+    function getAscensionBuildingSpecificMultiplier(building, upgrades = state.ascensionUpgrades) {
+      return ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
+        const buildingMultiplier = upgrade.buildingMultipliers?.[building.id] ?? 1;
+        return multiplier * buildingMultiplier ** normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 1);
     }
 
     function getAscensionStartingGummies(upgrades = state.ascensionUpgrades) {
       return ascensionUpgradeDefinitions.reduce((total, upgrade) => {
-        return total + upgrade.startingGummies * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+        return total + (upgrade.startingGummies ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 0);
     }
 
