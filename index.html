@@ -1576,7 +1576,7 @@
       lollyCount.textContent = formatGummyCount(roundedLollies);
       lollyLabel.textContent = roundedLollies === 1 ? "gummy snake in the stash" : "gummy snakes in the stash";
       perClick.textContent = formatGummyCount(currentPerClick);
-      perSecond.textContent = formatGummyCount(currentPerSecond);
+      perSecond.textContent = formatRate(currentPerSecond);
       buttonGain.textContent = formatGummyCount(currentPerClick);
       buttonGainLabel.textContent = pluraliseSnake(currentPerClick);
       snakeHeadCount.textContent = formatNumber(state.snakeHeads);
@@ -1920,7 +1920,7 @@
     }
 
     function getBuildingRateText(building) {
-      return `${formatGummyCount(getBuildingPerSecond(building))} snakes/sec each`;
+      return `${formatRate(getBuildingPerSecond(building))} snakes/sec each`;
     }
 
     function getBuildingMultiplier() {
