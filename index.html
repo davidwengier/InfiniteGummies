@@ -2090,9 +2090,13 @@
     }
 
     function formatRate(value) {
-      return value.toLocaleString("en-AU", {
-        maximumFractionDigits: value > 0 && value < 10 ? 1 : 0
-      });
+      if (value > 0 && value < 10) {
+        return value.toLocaleString("en-AU", {
+          maximumFractionDigits: 1
+        });
+      }
+
+      return formatGummyCount(value);
     }
 
     function pluraliseSnake(value) {
