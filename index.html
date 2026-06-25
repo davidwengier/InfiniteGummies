@@ -1476,6 +1476,46 @@
         buildingMultiplier: 1,
         startingGummies: 0,
         extraTailsPerAscend: 1
+      },
+      {
+        id: "tail-timewarp",
+        name: "Tail Timewarp",
+        image: makeIcon("orbit"),
+        description: "Warp time so every building makes twice as many gummy snakes forever.",
+        effect: "x2 buildings forever",
+        cost: 4,
+        costMultiplier: 4,
+        maxPurchases: 2,
+        clickBonus: 0,
+        buildingMultiplier: 2,
+        startingGummies: 0
+      },
+      {
+        id: "cosmic-tail-coil",
+        name: "Cosmic Tail Coil",
+        image: makeIcon("portal"),
+        description: "All Head Shop upgrade effects are 25% stronger forever.",
+        effect: "+25% Head Shop effects",
+        cost: 6,
+        costMultiplier: 4,
+        maxPurchases: 2,
+        clickBonus: 0,
+        buildingMultiplier: 1,
+        headShopEffectMultiplier: 1.25,
+        startingGummies: 0
+      },
+      {
+        id: "dugs-ultimate-snack",
+        name: "Dug's Ultimate Snack",
+        image: "Dug.png",
+        description: "Dug shares the ultimate snack for a huge permanent click and building boost.",
+        effect: "+10,000 clicks, x3 buildings",
+        cost: 10,
+        costMultiplier: 5,
+        maxPurchases: 2,
+        clickBonus: 10000,
+        buildingMultiplier: 3,
+        startingGummies: 0
       }
     ].concat(tailBuildingAscensionUpgradeDefinitions);
 
@@ -2397,8 +2437,9 @@
     }
 
     function getStoreUpgradeCostMultiplier() {
+      const headShopEffectMultiplier = getHeadShopEffectMultiplier();
       const headMultiplier = ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
-        return multiplier * (upgrade.storeUpgradeCostMultiplier ?? 1) ** getAscensionUpgradeCount(upgrade);
+        return multiplier * getStrengthenedEffectMultiplier(upgrade.storeUpgradeCostMultiplier ?? 1, headShopEffectMultiplier) ** getAscensionUpgradeCount(upgrade);
       }, 1);
 
       return tailAscensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
@@ -2524,13 +2565,14 @@
     }
 
     function getAscensionBonusHeads(upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
+      const headShopEffectMultiplier = getHeadShopEffectMultiplier(tailUpgrades);
       const headBonus = ascensionUpgradeDefinitions.reduce((total, upgrade) => {
         return total + (upgrade.extraHeadsPerAscend ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 0);
 
       return tailAscensionUpgradeDefinitions.reduce((total, upgrade) => {
         return total + (upgrade.extraHeadsPerAscend ?? 0) * normaliseStoreUpgradeValue(tailUpgrades[upgrade.id]);
-      }, headBonus);
+      }, Math.floor(headBonus * headShopEffectMultiplier));
     }
 
     function getTailAscensionBonusTails(upgrades = state.tailAscensionUpgrades) {
@@ -2559,9 +2601,21 @@
       return pendingHeads > 0 ? `${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}` : "0 heads";
     }
 
+    function getHeadShopEffectMultiplier(upgrades = state.tailAscensionUpgrades) {
+      return tailAscensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
+        return multiplier * (upgrade.headShopEffectMultiplier ?? 1) ** normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+      }, 1);
+    }
+
+    function getStrengthenedEffectMultiplier(value, effectMultiplier) {
+      const effectDelta = Math.abs(value - 1) * effectMultiplier;
+      return value < 1 ? Math.max(0.01, 1 - effectDelta) : 1 + effectDelta;
+    }
+
     function getAscensionBaseClickPower(upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
+      const headShopEffectMultiplier = getHeadShopEffectMultiplier(tailUpgrades);
       const headClickPower = ascensionUpgradeDefinitions.reduce((total, upgrade) => {
-        return total + (upgrade.clickBonus ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+        return total + (upgrade.clickBonus ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]) * headShopEffectMultiplier;
       }, 1);
 
       return tailAscensionUpgradeDefinitions.reduce((total, upgrade) => {
@@ -2570,8 +2624,9 @@
     }
 
     function getAscensionBuildingMultiplier(upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
+      const headShopEffectMultiplier = getHeadShopEffectMultiplier(tailUpgrades);
       const headMultiplier = ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
-        return multiplier * (upgrade.buildingMultiplier ?? 1) ** normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+        return multiplier * getStrengthenedEffectMultiplier(upgrade.buildingMultiplier ?? 1, headShopEffectMultiplier) ** normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 1);
 
       return tailAscensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
@@ -2580,9 +2635,10 @@
     }
 
     function getAscensionBuildingSpecificMultiplier(building, upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
+      const headShopEffectMultiplier = getHeadShopEffectMultiplier(tailUpgrades);
       const headMultiplier = ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
         const buildingMultiplier = upgrade.buildingMultipliers?.[building.id] ?? 1;
-        return multiplier * buildingMultiplier ** normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+        return multiplier * getStrengthenedEffectMultiplier(buildingMultiplier, headShopEffectMultiplier) ** normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 1);
 
       return tailAscensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
@@ -2592,13 +2648,14 @@
     }
 
     function getAscensionStartingGummies(upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
+      const headShopEffectMultiplier = getHeadShopEffectMultiplier(tailUpgrades);
       const headStartingGummies = ascensionUpgradeDefinitions.reduce((total, upgrade) => {
         return total + (upgrade.startingGummies ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 0);
 
       return tailAscensionUpgradeDefinitions.reduce((total, upgrade) => {
         return total + (upgrade.startingGummies ?? 0) * normaliseStoreUpgradeValue(tailUpgrades[upgrade.id]);
-      }, headStartingGummies);
+      }, Math.floor(headStartingGummies * headShopEffectMultiplier));
     }
 
     function getSavedClickPower(savedClickPower, storeUpgrades = {}, ascensionUpgrades = {}, tailAscensionUpgrades = {}) {
