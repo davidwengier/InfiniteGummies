@@ -884,7 +884,7 @@
             <p class="ascend-hint" id="ascendHint">Earn 1 gummy snake head for every trillion gummies in a run.</p>
           </div>
 
-          <div class="ascend-panel" aria-label="Tail ascension">
+          <div class="ascend-panel" aria-label="elite ascending">
             <div class="snake-head-balance snake-tail-balance">
               <span>Snake tails</span>
               <strong id="snakeTailCount">0</strong>
@@ -948,7 +948,7 @@
         <div id="tailAscensionStore" hidden>
           <section class="shop-block">
             <div class="shop-block-header">
-              <h3>Tail Shop</h3>
+              <h3>elite ascending</h3>
               <span id="tailAscensionShopBalance">0 tails</span>
             </div>
             <p class="ascension-copy">Spend snake tails on stronger upgrades that survive every ascension.</p>
@@ -1801,8 +1801,8 @@
         : "Open Head Shop";
       tailAscendButton.disabled = false;
       tailAscendButton.textContent = pendingTails > 0
-        ? `Open Tail Shop (${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)} ready)`
-        : "Open Tail Shop";
+        ? `Open elite ascending (${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)} ready)`
+        : "Open elite ascending";
       completeAscension.textContent = pendingHeads > 0 || pendingTails > 0
         ? `Ascend and claim ${getAscensionRewardText(pendingHeads, pendingTails, "heads")}`
         : "Ascend and reset for 0 heads";
@@ -2112,7 +2112,7 @@
       normalStore.hidden = showingAscension || showingTailAscension;
       ascensionStore.hidden = !showingAscension;
       tailAscensionStore.hidden = !showingTailAscension;
-      shopTitle.textContent = showingTailAscension ? "Tail Shop" : showingAscension ? "Head Shop" : "Store";
+      shopTitle.textContent = showingTailAscension ? "elite ascending" : showingAscension ? "Head Shop" : "Store";
       shopSubtitle.textContent = showingTailAscension ? "Higher ascension upgrades" : showingAscension ? "Permanent upgrades" : "Gummy stock";
       render();
     }
