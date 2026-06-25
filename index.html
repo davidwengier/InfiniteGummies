@@ -1147,6 +1147,21 @@
         repeatable: true
       },
       {
+        id: "sugar-rush",
+        name: "Sugar Rush",
+        image: makeIcon("sour-sugar"),
+        description: "A fizzy burst triples clicks for 30 seconds after buying.",
+        effect: "x3 clicks for 30s",
+        cost: 450,
+        costMultiplier: 2.2,
+        clickBonus: 0,
+        clickMultiplier: 1,
+        clickBurstMultiplier: 3,
+        clickBurstDurationMs: 30000,
+        buildingMultiplier: 1,
+        repeatable: true
+      },
+      {
         id: "bulk-lolly-bags",
         name: "Bulk Lolly Bags",
         image: makeIcon("party-label"),
@@ -1158,6 +1173,21 @@
         clickMultiplier: 1,
         buildingMultiplier: 1,
         buildingCostMultiplier: 0.95,
+        repeatable: false
+      },
+      {
+        id: "bulk-bag-bonus",
+        name: "Bulk Bag Bonus",
+        image: makeIcon("party-mix"),
+        description: "Every 100 clicks drops a bonus stash worth 100 clicks.",
+        effect: "+100 clicks every 100 clicks",
+        cost: 2500,
+        costMultiplier: 1,
+        clickBonus: 0,
+        clickMultiplier: 1,
+        bulkClickInterval: 100,
+        bulkBonusClickMultiplier: 100,
+        buildingMultiplier: 1,
         repeatable: false
       },
       {
@@ -1185,6 +1215,21 @@
         clickBonus: 0,
         clickMultiplier: 1,
         clickCriticalChance: 0.05,
+        clickCriticalMultiplier: 10,
+        buildingMultiplier: 1,
+        repeatable: false
+      },
+      {
+        id: "rainbow-recipe",
+        name: "Rainbow Recipe",
+        image: makeIcon("rainbow-batch"),
+        description: "More rainbow colours make double-headed snakes easier to find.",
+        effect: "+10% chance for x10 clicks",
+        cost: 350000,
+        costMultiplier: 1,
+        clickBonus: 0,
+        clickMultiplier: 1,
+        clickCriticalChance: 0.1,
         clickCriticalMultiplier: 10,
         buildingMultiplier: 1,
         repeatable: false
@@ -1620,6 +1665,8 @@
       runGummiesEarned: 0,
       totalClicks: 0,
       clickPower: 1,
+      clickBurstEndsAt: 0,
+      clickBurstMultiplier: 1,
       snakeHeads: 0,
       snakeTails: 0,
       ascensionUpgrades: Object.fromEntries(ascensionUpgradeDefinitions.map((upgrade) => [upgrade.id, 0])),
@@ -1677,12 +1724,23 @@
 
     lollyButton.addEventListener("click", (event) => {
       const click = getClickGain();
-      const gained = click.gained;
-      state.lollies += gained;
-      state.runGummiesEarned += gained;
+      let gained = click.gained;
+      state.lollies += click.gained;
+      state.runGummiesEarned += click.gained;
       state.totalClicks += 1;
-      const bonusText = click.isCritical ? " Double-headed!" : "";
-      createFloaty(`+${formatGummyCount(gained)} ${pluraliseSnake(gained)}${bonusText}`, event.clientX, event.clientY);
+      const bulkBagBonus = getBulkBagBonus();
+      if (bulkBagBonus > 0) {
+        gained += bulkBagBonus;
+        state.lollies += bulkBagBonus;
+        state.runGummiesEarned += bulkBagBonus;
+      }
+
+      const bonusText = [
+        click.isCritical ? "Double-headed!" : "",
+        bulkBagBonus > 0 ? `Bulk bag +${formatGummyCount(bulkBagBonus)}!` : ""
+      ].filter(Boolean).join(" ");
+      const bonusSuffix = bonusText ? ` ${bonusText}` : "";
+      createFloaty(`+${formatGummyCount(gained)} ${pluraliseSnake(gained)}${bonusSuffix}`, event.clientX, event.clientY);
       animateLolly();
       saveState();
       render();
@@ -1769,6 +1827,8 @@
           runGummiesEarned: getSavedNumber(parsedState.runGummiesEarned ?? lollies),
           totalClicks: getSavedNumber(parsedState.totalClicks),
           clickPower: getSavedClickPower(parsedState.clickPower, storeUpgrades, ascensionUpgrades, tailAscensionUpgrades),
+          clickBurstEndsAt: getSavedNumber(parsedState.clickBurstEndsAt),
+          clickBurstMultiplier: Math.max(1, getSavedNumber(parsedState.clickBurstMultiplier) || 1),
           snakeHeads: getSavedNumber(parsedState.snakeHeads),
           snakeTails: getSavedNumber(parsedState.snakeTails),
           ascensionUpgrades,
@@ -1790,7 +1850,7 @@
 
     function render() {
       const roundedLollies = Math.floor(state.lollies);
-      const currentPerClick = getLolliesPerClick();
+      const currentPerClick = getEffectiveLolliesPerClick();
       const currentPerSecond = getLolliesPerSecond();
       const pendingHeads = getPendingSnakeHeads();
       const pendingTails = getPendingSnakeTails();
@@ -2013,6 +2073,7 @@
       state.lollies -= cost;
       applyClickUpgrade(upgrade);
       state.storeUpgrades[upgrade.id] = getStoreUpgradeCount(upgrade) + 1;
+      applyStoreUpgradePurchaseEffect(upgrade);
       saveState();
       renderBuildings();
       render();
@@ -2114,6 +2175,8 @@
       state.runGummiesEarned = state.lollies;
       state.totalClicks = 0;
       state.clickPower = getAscensionBaseClickPower();
+      state.clickBurstEndsAt = 0;
+      state.clickBurstMultiplier = 1;
       state.storeUpgrades = Object.fromEntries(storeUpgradeDefinitions.map((upgrade) => [upgrade.id, 0]));
       state.buildings = Object.fromEntries(buildingDefinitions.map((building) => [building.id, 0]));
     }
@@ -2317,6 +2380,16 @@
       return getSavedClickPower(state.clickPower, state.storeUpgrades);
     }
 
+    function getEffectiveLolliesPerClick() {
+      return getLolliesPerClick() * getClickBurstMultiplier();
+    }
+
+    function getClickBurstMultiplier() {
+      return getSavedNumber(state.clickBurstEndsAt) > Date.now()
+        ? Math.max(1, getSavedNumber(state.clickBurstMultiplier) || 1)
+        : 1;
+    }
+
     function getBuildingCostMultiplier() {
       return storeUpgradeDefinitions.reduce((multiplier, upgrade) => {
         return multiplier * (upgrade.buildingCostMultiplier ?? 1) ** getStoreUpgradeCount(upgrade);
@@ -2334,7 +2407,7 @@
     }
 
     function getClickGain() {
-      const baseGain = getLolliesPerClick();
+      const baseGain = getEffectiveLolliesPerClick();
       const criticalMultiplier = getClickCriticalMultiplier();
       const isCritical = criticalMultiplier > 1 && Math.random() < getClickCriticalChance();
       return {
@@ -2353,6 +2426,17 @@
       return storeUpgradeDefinitions.reduce((multiplier, upgrade) => {
         return getStoreUpgradeCount(upgrade) > 0 ? Math.max(multiplier, upgrade.clickCriticalMultiplier ?? 1) : multiplier;
       }, 1);
+    }
+
+    function getBulkBagBonus() {
+      return storeUpgradeDefinitions.reduce((bonus, upgrade) => {
+        const interval = upgrade.bulkClickInterval ?? 0;
+        if (getStoreUpgradeCount(upgrade) <= 0 || interval <= 0 || state.totalClicks % interval !== 0) {
+          return bonus;
+        }
+
+        return bonus + getEffectiveLolliesPerClick() * (upgrade.bulkBonusClickMultiplier ?? 0);
+      }, 0);
     }
 
     function getLolliesPerSecond() {
@@ -2388,6 +2472,16 @@
 
     function applyClickUpgrade(upgrade) {
       state.clickPower = getLolliesPerClick() * upgrade.clickMultiplier + upgrade.clickBonus;
+    }
+
+    function applyStoreUpgradePurchaseEffect(upgrade) {
+      if (!upgrade.clickBurstDurationMs) {
+        return;
+      }
+
+      const now = Date.now();
+      state.clickBurstEndsAt = Math.max(getSavedNumber(state.clickBurstEndsAt), now) + upgrade.clickBurstDurationMs;
+      state.clickBurstMultiplier = Math.max(1, getSavedNumber(state.clickBurstMultiplier) || 1, upgrade.clickBurstMultiplier ?? 1);
     }
 
     function normaliseStoreUpgrades(savedUpgrades = {}) {
