@@ -871,9 +871,9 @@
               <strong id="snakeHeadCount">0</strong>
             </div>
             <div class="ascend-actions">
-              <button class="ascend-button" id="ascendButton" type="button">Ascend at 1 billion</button>
+              <button class="ascend-button" id="ascendButton" type="button">Ascend at 1 trillion</button>
             </div>
-            <p class="ascend-hint" id="ascendHint">Earn 1 gummy snake head for every billion gummies in a run.</p>
+            <p class="ascend-hint" id="ascendHint">Earn 1 gummy snake head for every trillion gummies in a run.</p>
           </div>
         </div>
         <div class="floaties" id="floaties" aria-hidden="true"></div>
@@ -934,7 +934,7 @@
   <script>
     const SAVE_KEY = "gummy-snake-clicker-save-v1";
     const THEME_KEY = "infinite-gummies-theme";
-    const ASCENSION_THRESHOLD = 1000000000;
+    const ASCENSION_THRESHOLD = 1000000000000;
     const BUILDING_SELL_REFUND_RATE = 0.25;
 
     const buildingDefinitions = [
@@ -2178,7 +2178,7 @@
     function getAscendHintText() {
       const bonusHeads = getAscensionBonusHeads();
       const bonusText = bonusHeads > 0 ? ` + ${formatNumber(bonusHeads)} bonus ${pluraliseHead(bonusHeads)}` : "";
-      return `This run: ${formatGummyCount(state.runGummiesEarned)} gummies earned. 1 head per 1 billion${bonusText}.`;
+      return `This run: ${formatGummyCount(state.runGummiesEarned)} gummies earned. 1 head per 1 trillion${bonusText}.`;
     }
 
     function getAscensionBaseClickPower(upgrades = state.ascensionUpgrades) {
