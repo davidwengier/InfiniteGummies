@@ -286,6 +286,10 @@
       background: rgba(255, 255, 255, 0.7);
     }
 
+    .ascend-panel + .ascend-panel {
+      margin-top: 12px;
+    }
+
     :root[data-theme="dark"] .ascend-panel {
       background: rgba(255, 255, 255, 0.1);
     }
@@ -302,6 +306,10 @@
     .snake-head-balance strong {
       color: var(--pink-dark);
       font-size: 1.45rem;
+    }
+
+    .snake-tail-balance strong {
+      color: var(--grape);
     }
 
     .ascend-actions {
@@ -875,6 +883,17 @@
             </div>
             <p class="ascend-hint" id="ascendHint">Earn 1 gummy snake head for every trillion gummies in a run.</p>
           </div>
+
+          <div class="ascend-panel" aria-label="Tail ascension">
+            <div class="snake-head-balance snake-tail-balance">
+              <span>Snake tails</span>
+              <strong id="snakeTailCount">0</strong>
+            </div>
+            <div class="ascend-actions">
+              <button class="ascend-button" id="tailAscendButton" type="button">Ascend at 1 quintillion</button>
+            </div>
+            <p class="ascend-hint" id="tailAscendHint">Earn 1 snake tail for every quintillion gummies in a run.</p>
+          </div>
         </div>
         <div class="floaties" id="floaties" aria-hidden="true"></div>
       </article>
@@ -926,6 +945,20 @@
           </section>
         </div>
 
+        <div id="tailAscensionStore" hidden>
+          <section class="shop-block">
+            <div class="shop-block-header">
+              <h3>Tail Shop</h3>
+              <span id="tailAscensionShopBalance">0 tails</span>
+            </div>
+            <p class="ascension-copy">Spend snake tails on stronger upgrades that survive every ascension.</p>
+            <div class="ascension-upgrades" id="tailAscensionUpgrades"></div>
+            <button class="ascend-button" id="completeTailAscension" type="button">Ascend and reset run</button>
+            <button class="shop-toggle-button" id="returnToHeadShop" type="button">Back to Head Shop</button>
+            <button class="shop-toggle-button" id="returnToStoreFromTail" type="button">Back to store</button>
+          </section>
+        </div>
+
         <p class="footer-note">Your stash saves automatically in this browser.</p>
       </aside>
     </section>
@@ -934,7 +967,8 @@
   <script>
     const SAVE_KEY = "gummy-snake-clicker-save-v1";
     const THEME_KEY = "infinite-gummies-theme";
-    const ASCENSION_THRESHOLD = 1000000000000;
+    const HEAD_ASCENSION_THRESHOLD = 1e12;
+    const TAIL_ASCENSION_THRESHOLD = 1e18;
     const BUILDING_SELL_REFUND_RATE = 0.25;
 
     const buildingDefinitions = [
@@ -1322,6 +1356,76 @@
       }
     ].concat(buildingAscensionUpgradeDefinitions);
 
+    const tailAscensionUpgradeDefinitions = [
+      {
+        id: "tail-whip",
+        name: "Tail Whip",
+        image: makeIcon("sour-sugar"),
+        description: "Snake tails flick every future click much harder.",
+        effect: "+1,000 clicks forever",
+        cost: 1,
+        costMultiplier: 2,
+        maxPurchases: 20,
+        clickBonus: 1000,
+        buildingMultiplier: 1,
+        startingGummies: 0
+      },
+      {
+        id: "tail-foundry",
+        name: "Tail Foundry",
+        image: makeIcon("factory"),
+        description: "All buildings permanently make twice as many gummy snakes.",
+        effect: "x2 buildings forever",
+        cost: 1,
+        costMultiplier: 2,
+        maxPurchases: 20,
+        clickBonus: 0,
+        buildingMultiplier: 2,
+        startingGummies: 0
+      },
+      {
+        id: "tail-cache",
+        name: "Tail Cache",
+        image: makeIcon("vault"),
+        description: "Begin each new ascension with a massive stash ready to chew.",
+        effect: "+1 trillion starting gummies",
+        cost: 2,
+        costMultiplier: 2,
+        maxPurchases: 10,
+        clickBonus: 0,
+        buildingMultiplier: 1,
+        startingGummies: 1e12
+      },
+      {
+        id: "head-hoard",
+        name: "Head Hoard",
+        image: makeIcon("castle"),
+        description: "Earn extra gummy snake heads whenever you ascend.",
+        effect: "+100 heads per ascend",
+        cost: 2,
+        costMultiplier: 2.25,
+        maxPurchases: 20,
+        clickBonus: 0,
+        buildingMultiplier: 1,
+        startingGummies: 0,
+        extraHeadsPerAscend: 100
+      },
+      {
+        id: "tail-twister",
+        name: "Tail Twister",
+        image: makeIcon("portal"),
+        description: "Earn an extra snake tail whenever a run is big enough for tails.",
+        effect: "+1 tail per tail ascend",
+        cost: 3,
+        costMultiplier: 3,
+        maxPurchases: 10,
+        clickBonus: 0,
+        buildingMultiplier: 1,
+        startingGummies: 0,
+        extraTailsPerAscend: 1
+      }
+    ];
+
     function makeIcon(kind) {
       const svgs = {
         "mould": `
@@ -1509,7 +1613,9 @@
       totalClicks: 0,
       clickPower: 1,
       snakeHeads: 0,
+      snakeTails: 0,
       ascensionUpgrades: Object.fromEntries(ascensionUpgradeDefinitions.map((upgrade) => [upgrade.id, 0])),
+      tailAscensionUpgrades: Object.fromEntries(tailAscensionUpgradeDefinitions.map((upgrade) => [upgrade.id, 0])),
       storeUpgrades: Object.fromEntries(storeUpgradeDefinitions.map((upgrade) => [upgrade.id, 0])),
       buildings: Object.fromEntries(buildingDefinitions.map((building) => [building.id, 0]))
     };
@@ -1526,17 +1632,26 @@
     const buttonGainLabel = document.querySelector("#buttonGainLabel");
     const lollyButton = document.querySelector("#lollyButton");
     const snakeHeadCount = document.querySelector("#snakeHeadCount");
+    const snakeTailCount = document.querySelector("#snakeTailCount");
     const ascendButton = document.querySelector("#ascendButton");
+    const tailAscendButton = document.querySelector("#tailAscendButton");
     const ascendHint = document.querySelector("#ascendHint");
+    const tailAscendHint = document.querySelector("#tailAscendHint");
     const completeAscension = document.querySelector("#completeAscension");
+    const completeTailAscension = document.querySelector("#completeTailAscension");
     const returnToStore = document.querySelector("#returnToStore");
+    const returnToHeadShop = document.querySelector("#returnToHeadShop");
+    const returnToStoreFromTail = document.querySelector("#returnToStoreFromTail");
     const shopTitle = document.querySelector("#shopTitle");
     const shopSubtitle = document.querySelector("#shopSubtitle");
     const normalStore = document.querySelector("#normalStore");
     const ascensionStore = document.querySelector("#ascensionStore");
+    const tailAscensionStore = document.querySelector("#tailAscensionStore");
     const ascensionShopBalance = document.querySelector("#ascensionShopBalance");
+    const tailAscensionShopBalance = document.querySelector("#tailAscensionShopBalance");
     const storeUpgradesContainer = document.querySelector("#storeUpgrades");
     const ascensionUpgradesContainer = document.querySelector("#ascensionUpgrades");
+    const tailAscensionUpgradesContainer = document.querySelector("#tailAscensionUpgrades");
     const buildingsContainer = document.querySelector("#buildings");
     const buildingActionButtons = document.querySelectorAll("[data-building-action]");
     const buildingBuyButtons = document.querySelectorAll("[data-building-buy]");
@@ -1548,6 +1663,7 @@
     initialiseTheme();
     renderStoreUpgrades();
     renderAscensionUpgrades();
+    renderTailAscensionUpgrades();
     renderBuildings();
     render();
 
@@ -1565,8 +1681,12 @@
     });
 
     ascendButton.addEventListener("click", () => showShop("ascension"));
+    tailAscendButton.addEventListener("click", () => showShop("tailAscension"));
     completeAscension.addEventListener("click", completeAscensionReset);
+    completeTailAscension.addEventListener("click", completeTailAscensionReset);
     returnToStore.addEventListener("click", () => showShop("store"));
+    returnToHeadShop.addEventListener("click", () => showShop("ascension"));
+    returnToStoreFromTail.addEventListener("click", () => showShop("store"));
 
     buildingActionButtons.forEach((button) => {
       button.addEventListener("click", () => {
@@ -1589,7 +1709,7 @@
     });
 
     resetGame.addEventListener("click", () => {
-      if (!confirm("Reset your gummy snake stash and buildings?")) {
+      if (!confirm("Reset your gummy snake stash, ascension currencies, upgrades, and buildings?")) {
         return;
       }
 
@@ -1633,15 +1753,18 @@
         const savedBuildings = parsedState.buildings ?? parsedState.upgrades ?? {};
         const storeUpgrades = normaliseStoreUpgrades(parsedState.storeUpgrades);
         const ascensionUpgrades = normaliseAscensionUpgrades(parsedState.ascensionUpgrades);
+        const tailAscensionUpgrades = normaliseTailAscensionUpgrades(parsedState.tailAscensionUpgrades);
         const lollies = getSavedNumber(parsedState.lollies);
 
         return {
           lollies,
           runGummiesEarned: getSavedNumber(parsedState.runGummiesEarned ?? lollies),
           totalClicks: getSavedNumber(parsedState.totalClicks),
-          clickPower: getSavedClickPower(parsedState.clickPower, storeUpgrades, ascensionUpgrades),
+          clickPower: getSavedClickPower(parsedState.clickPower, storeUpgrades, ascensionUpgrades, tailAscensionUpgrades),
           snakeHeads: getSavedNumber(parsedState.snakeHeads),
+          snakeTails: getSavedNumber(parsedState.snakeTails),
           ascensionUpgrades,
+          tailAscensionUpgrades,
           storeUpgrades,
           buildings: {
             ...defaultState.buildings,
@@ -1662,6 +1785,7 @@
       const currentPerClick = getLolliesPerClick();
       const currentPerSecond = getLolliesPerSecond();
       const pendingHeads = getPendingSnakeHeads();
+      const pendingTails = getPendingSnakeTails();
 
       lollyCount.textContent = formatGummyCount(roundedLollies);
       lollyLabel.textContent = roundedLollies === 1 ? "gummy snake in the stash" : "gummy snakes in the stash";
@@ -1670,15 +1794,25 @@
       buttonGain.textContent = formatGummyCount(currentPerClick);
       buttonGainLabel.textContent = pluraliseSnake(currentPerClick);
       snakeHeadCount.textContent = formatNumber(state.snakeHeads);
+      snakeTailCount.textContent = formatNumber(state.snakeTails);
       ascendButton.disabled = false;
       ascendButton.textContent = pendingHeads > 0
         ? `Open Head Shop (${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)} ready)`
         : "Open Head Shop";
-      completeAscension.textContent = pendingHeads > 0
-        ? `Ascend and claim ${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}`
+      tailAscendButton.disabled = false;
+      tailAscendButton.textContent = pendingTails > 0
+        ? `Open Tail Shop (${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)} ready)`
+        : "Open Tail Shop";
+      completeAscension.textContent = pendingHeads > 0 || pendingTails > 0
+        ? `Ascend and claim ${getAscensionRewardText(pendingHeads, pendingTails, "heads")}`
         : "Ascend and reset for 0 heads";
+      completeTailAscension.textContent = pendingHeads > 0 || pendingTails > 0
+        ? `Ascend and claim ${getAscensionRewardText(pendingHeads, pendingTails, "tails")}`
+        : "Ascend and reset for 0 tails";
       ascendHint.textContent = getAscendHintText();
+      tailAscendHint.textContent = getTailAscendHintText();
       ascensionShopBalance.textContent = `${formatNumber(state.snakeHeads)} ${pluraliseHead(state.snakeHeads)}`;
+      tailAscensionShopBalance.textContent = `${formatNumber(state.snakeTails)} ${pluraliseTail(state.snakeTails)}`;
 
       buildingActionButtons.forEach((button) => {
         button.classList.toggle("active", button.dataset.buildingAction === buildingActionMode);
@@ -1729,6 +1863,20 @@
           ? `${formatNumber(owned)}/${formatNumber(upgrade.maxPurchases)}`
           : formatNumber(owned);
         upgradeCard.querySelector(".cost").textContent = maxed ? "Maxed" : `${formatNumber(cost)} ${pluraliseHead(cost)}`;
+      }
+
+      for (const upgrade of tailAscensionUpgradeDefinitions) {
+        const owned = getTailAscensionUpgradeCount(upgrade);
+        const maxed = isTailAscensionUpgradeMaxed(upgrade);
+        const cost = getTailAscensionUpgradeCost(upgrade);
+        const upgradeCard = document.querySelector(`[data-tail-ascension-upgrade="${upgrade.id}"]`);
+
+        upgradeCard.classList.toggle("owned", owned > 0);
+        upgradeCard.disabled = maxed || state.snakeTails < cost;
+        upgradeCard.querySelector(".owned").textContent = upgrade.maxPurchases
+          ? `${formatNumber(owned)}/${formatNumber(upgrade.maxPurchases)}`
+          : formatNumber(owned);
+        upgradeCard.querySelector(".cost").textContent = maxed ? "Maxed" : `${formatNumber(cost)} ${pluraliseTail(cost)}`;
       }
     }
 
@@ -1783,6 +1931,37 @@
 
         card.addEventListener("click", () => buyAscensionUpgrade(upgrade));
         ascensionUpgradesContainer.append(card);
+      }
+    }
+
+    function renderTailAscensionUpgrades() {
+      tailAscensionUpgradesContainer.innerHTML = "";
+
+      for (const upgrade of getTailAscensionUpgradesByStartingCost()) {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "building ascension-upgrade";
+        card.dataset.tailAscensionUpgrade = upgrade.id;
+        card.title = upgrade.description;
+
+        card.innerHTML = `
+          <span class="building-icon" aria-hidden="true"><img src="${upgrade.image}" alt=""></span>
+          <span class="building-info">
+            <span class="building-name">${upgrade.name}</span>
+            <span class="building-description">${upgrade.description}</span>
+            <span class="building-meta">${upgrade.effect}</span>
+          </span>
+          <span class="building-purchase">
+            <span class="building-owned">
+              <span class="building-owned-label">Owned</span>
+              <span class="building-owned-count owned">0</span>
+            </span>
+            <span class="building-price cost">0 tails</span>
+          </span>
+        `;
+
+        card.addEventListener("click", () => buyTailAscensionUpgrade(upgrade));
+        tailAscensionUpgradesContainer.append(card);
       }
     }
 
@@ -1848,6 +2027,23 @@
       render();
     }
 
+    function buyTailAscensionUpgrade(upgrade) {
+      const cost = getTailAscensionUpgradeCost(upgrade);
+      if (isTailAscensionUpgradeMaxed(upgrade) || state.snakeTails < cost) {
+        return;
+      }
+
+      state.snakeTails -= cost;
+      state.tailAscensionUpgrades[upgrade.id] = getTailAscensionUpgradeCount(upgrade) + 1;
+      if (upgrade.clickBonus > 0) {
+        state.clickPower += upgrade.clickBonus;
+      }
+
+      saveState();
+      renderTailAscensionUpgrades();
+      render();
+    }
+
     function buyBuilding(building) {
       const purchase = getBuildingPurchase(building);
       if (purchase.quantity <= 0 || state.lollies < purchase.cost) {
@@ -1873,22 +2069,31 @@
     }
 
     function completeAscensionReset() {
+      completeRunReset("ascension", "heads");
+    }
+
+    function completeTailAscensionReset() {
+      completeRunReset("tailAscension", "tails");
+    }
+
+    function completeRunReset(returnShop, primaryCurrency) {
       const pendingHeads = getPendingSnakeHeads();
-      const rewardText = pendingHeads > 0
-        ? `${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}`
-        : "0 heads";
+      const pendingTails = getPendingSnakeTails();
+      const rewardText = getAscensionRewardText(pendingHeads, pendingTails, primaryCurrency);
       const confirmed = confirm(`Ascend for ${rewardText}? This resets your current gummies, run upgrades, and buildings, but keeps permanent upgrades.`);
       if (!confirmed) {
         return;
       }
 
       state.snakeHeads += pendingHeads;
+      state.snakeTails += pendingTails;
       resetRun();
       saveState();
-      showShop("ascension");
+      showShop(returnShop);
       renderStoreUpgrades();
       renderBuildings();
       renderAscensionUpgrades();
+      renderTailAscensionUpgrades();
       render();
     }
 
@@ -1903,10 +2108,12 @@
 
     function showShop(shop) {
       const showingAscension = shop === "ascension";
-      normalStore.hidden = showingAscension;
+      const showingTailAscension = shop === "tailAscension";
+      normalStore.hidden = showingAscension || showingTailAscension;
       ascensionStore.hidden = !showingAscension;
-      shopTitle.textContent = showingAscension ? "Head Shop" : "Store";
-      shopSubtitle.textContent = showingAscension ? "Permanent upgrades" : "Gummy stock";
+      tailAscensionStore.hidden = !showingTailAscension;
+      shopTitle.textContent = showingTailAscension ? "Tail Shop" : showingAscension ? "Head Shop" : "Store";
+      shopSubtitle.textContent = showingTailAscension ? "Higher ascension upgrades" : showingAscension ? "Permanent upgrades" : "Gummy stock";
       render();
     }
 
@@ -2035,8 +2242,19 @@
       return Math.ceil(upgrade.cost * upgrade.costMultiplier ** getAscensionUpgradeCount(upgrade));
     }
 
+    function getTailAscensionUpgradeCost(upgrade) {
+      return Math.ceil(upgrade.cost * upgrade.costMultiplier ** getTailAscensionUpgradeCount(upgrade));
+    }
+
     function getAscensionUpgradesByStartingCost() {
       return [...ascensionUpgradeDefinitions].sort((left, right) => {
+        const costDifference = left.cost - right.cost;
+        return costDifference || left.name.localeCompare(right.name);
+      });
+    }
+
+    function getTailAscensionUpgradesByStartingCost() {
+      return [...tailAscensionUpgradeDefinitions].sort((left, right) => {
         const costDifference = left.cost - right.cost;
         return costDifference || left.name.localeCompare(right.name);
       });
@@ -2058,6 +2276,10 @@
       return normaliseStoreUpgradeValue(state.ascensionUpgrades[upgrade.id]);
     }
 
+    function getTailAscensionUpgradeCount(upgrade) {
+      return normaliseStoreUpgradeValue(state.tailAscensionUpgrades[upgrade.id]);
+    }
+
     function isStoreUpgradeMaxed(upgrade) {
       const owned = getStoreUpgradeCount(upgrade);
       return upgrade.maxPurchases ? owned >= upgrade.maxPurchases : !upgrade.repeatable && owned > 0;
@@ -2065,6 +2287,10 @@
 
     function isAscensionUpgradeMaxed(upgrade) {
       return upgrade.maxPurchases ? getAscensionUpgradeCount(upgrade) >= upgrade.maxPurchases : false;
+    }
+
+    function isTailAscensionUpgradeMaxed(upgrade) {
+      return upgrade.maxPurchases ? getTailAscensionUpgradeCount(upgrade) >= upgrade.maxPurchases : false;
     }
 
     function getStoreUpgradeOwnedText(upgrade, owned) {
@@ -2086,9 +2312,13 @@
     }
 
     function getStoreUpgradeCostMultiplier() {
-      return ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
+      const headMultiplier = ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
         return multiplier * (upgrade.storeUpgradeCostMultiplier ?? 1) ** getAscensionUpgradeCount(upgrade);
       }, 1);
+
+      return tailAscensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
+        return multiplier * (upgrade.storeUpgradeCostMultiplier ?? 1) ** getTailAscensionUpgradeCount(upgrade);
+      }, headMultiplier);
     }
 
     function getClickGain() {
@@ -2160,18 +2390,43 @@
       }));
     }
 
+    function normaliseTailAscensionUpgrades(savedUpgrades = {}) {
+      return Object.fromEntries(tailAscensionUpgradeDefinitions.map((upgrade) => {
+        return [upgrade.id, normaliseStoreUpgradeValue(savedUpgrades[upgrade.id])];
+      }));
+    }
+
     function getPendingSnakeHeads() {
       const baseHeads = getBasePendingSnakeHeads();
       return baseHeads > 0 ? baseHeads + getAscensionBonusHeads() : 0;
     }
 
     function getBasePendingSnakeHeads() {
-      return Math.floor(state.runGummiesEarned / ASCENSION_THRESHOLD);
+      return Math.floor(state.runGummiesEarned / HEAD_ASCENSION_THRESHOLD);
     }
 
-    function getAscensionBonusHeads(upgrades = state.ascensionUpgrades) {
-      return ascensionUpgradeDefinitions.reduce((total, upgrade) => {
+    function getPendingSnakeTails() {
+      const baseTails = getBasePendingSnakeTails();
+      return baseTails > 0 ? baseTails + getTailAscensionBonusTails() : 0;
+    }
+
+    function getBasePendingSnakeTails() {
+      return Math.floor(state.runGummiesEarned / TAIL_ASCENSION_THRESHOLD);
+    }
+
+    function getAscensionBonusHeads(upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
+      const headBonus = ascensionUpgradeDefinitions.reduce((total, upgrade) => {
         return total + (upgrade.extraHeadsPerAscend ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
+      }, 0);
+
+      return tailAscensionUpgradeDefinitions.reduce((total, upgrade) => {
+        return total + (upgrade.extraHeadsPerAscend ?? 0) * normaliseStoreUpgradeValue(tailUpgrades[upgrade.id]);
+      }, headBonus);
+    }
+
+    function getTailAscensionBonusTails(upgrades = state.tailAscensionUpgrades) {
+      return tailAscensionUpgradeDefinitions.reduce((total, upgrade) => {
+        return total + (upgrade.extraTailsPerAscend ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 0);
     }
 
@@ -2181,36 +2436,76 @@
       return `This run: ${formatGummyCount(state.runGummiesEarned)} gummies earned. 1 head per 1 trillion${bonusText}.`;
     }
 
-    function getAscensionBaseClickPower(upgrades = state.ascensionUpgrades) {
-      return ascensionUpgradeDefinitions.reduce((total, upgrade) => {
+    function getTailAscendHintText() {
+      const bonusTails = getTailAscensionBonusTails();
+      const bonusText = bonusTails > 0 ? ` + ${formatNumber(bonusTails)} bonus ${pluraliseTail(bonusTails)}` : "";
+      return `This run: ${formatGummyCount(state.runGummiesEarned)} gummies earned. 1 tail per 1 quintillion${bonusText}.`;
+    }
+
+    function getAscensionRewardText(pendingHeads, pendingTails, primaryCurrency) {
+      const rewards = [];
+      if (primaryCurrency === "tails" && pendingTails > 0) {
+        rewards.push(`${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)}`);
+      }
+
+      if (pendingHeads > 0) {
+        rewards.push(`${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}`);
+      }
+
+      if (primaryCurrency !== "tails" && pendingTails > 0) {
+        rewards.push(`${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)}`);
+      }
+
+      return rewards.length > 0 ? rewards.join(" + ") : `0 ${primaryCurrency}`;
+    }
+
+    function getAscensionBaseClickPower(upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
+      const headClickPower = ascensionUpgradeDefinitions.reduce((total, upgrade) => {
         return total + (upgrade.clickBonus ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 1);
+
+      return tailAscensionUpgradeDefinitions.reduce((total, upgrade) => {
+        return total + (upgrade.clickBonus ?? 0) * normaliseStoreUpgradeValue(tailUpgrades[upgrade.id]);
+      }, headClickPower);
     }
 
-    function getAscensionBuildingMultiplier(upgrades = state.ascensionUpgrades) {
-      return ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
+    function getAscensionBuildingMultiplier(upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
+      const headMultiplier = ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
         return multiplier * (upgrade.buildingMultiplier ?? 1) ** normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 1);
+
+      return tailAscensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
+        return multiplier * (upgrade.buildingMultiplier ?? 1) ** normaliseStoreUpgradeValue(tailUpgrades[upgrade.id]);
+      }, headMultiplier);
     }
 
-    function getAscensionBuildingSpecificMultiplier(building, upgrades = state.ascensionUpgrades) {
-      return ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
+    function getAscensionBuildingSpecificMultiplier(building, upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
+      const headMultiplier = ascensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
         const buildingMultiplier = upgrade.buildingMultipliers?.[building.id] ?? 1;
         return multiplier * buildingMultiplier ** normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 1);
+
+      return tailAscensionUpgradeDefinitions.reduce((multiplier, upgrade) => {
+        const buildingMultiplier = upgrade.buildingMultipliers?.[building.id] ?? 1;
+        return multiplier * buildingMultiplier ** normaliseStoreUpgradeValue(tailUpgrades[upgrade.id]);
+      }, headMultiplier);
     }
 
-    function getAscensionStartingGummies(upgrades = state.ascensionUpgrades) {
-      return ascensionUpgradeDefinitions.reduce((total, upgrade) => {
+    function getAscensionStartingGummies(upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
+      const headStartingGummies = ascensionUpgradeDefinitions.reduce((total, upgrade) => {
         return total + (upgrade.startingGummies ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]);
       }, 0);
+
+      return tailAscensionUpgradeDefinitions.reduce((total, upgrade) => {
+        return total + (upgrade.startingGummies ?? 0) * normaliseStoreUpgradeValue(tailUpgrades[upgrade.id]);
+      }, headStartingGummies);
     }
 
-    function getSavedClickPower(savedClickPower, storeUpgrades = {}, ascensionUpgrades = {}) {
+    function getSavedClickPower(savedClickPower, storeUpgrades = {}, ascensionUpgrades = {}, tailAscensionUpgrades = {}) {
       const clickPower = Number(savedClickPower);
       return Number.isFinite(clickPower) && clickPower >= 1
         ? clickPower
-        : deriveLegacyClickPower(storeUpgrades) + getAscensionBaseClickPower(ascensionUpgrades) - 1;
+        : deriveLegacyClickPower(storeUpgrades) + getAscensionBaseClickPower(ascensionUpgrades, tailAscensionUpgrades) - 1;
     }
 
     function deriveLegacyClickPower(storeUpgrades = {}) {
@@ -2297,6 +2592,10 @@
 
     function pluraliseHead(value) {
       return Math.floor(value) === 1 ? "head" : "heads";
+    }
+
+    function pluraliseTail(value) {
+      return Math.floor(value) === 1 ? "tail" : "tails";
     }
 
     function animateLolly() {
