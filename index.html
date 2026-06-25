@@ -1803,12 +1803,12 @@
       tailAscendButton.textContent = pendingTails > 0
         ? `Open gummy tail shop (${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)} ready)`
         : "Open gummy tail shop";
-      completeAscension.textContent = pendingHeads > 0 || pendingTails > 0
-        ? `Ascend and claim ${getAscensionRewardText(pendingHeads, pendingTails, "heads")}`
+      completeAscension.textContent = pendingHeads > 0
+        ? `Ascend and claim ${getAscensionRewardText(pendingHeads, 0, "heads")}`
         : "Ascend and reset for 0 heads";
-      completeTailAscension.textContent = pendingHeads > 0 || pendingTails > 0
-        ? `Ascend and claim ${getAscensionRewardText(pendingHeads, pendingTails, "tails")}`
-        : "Ascend and reset for 0 tails";
+      completeTailAscension.textContent = pendingTails > 0
+        ? `Elite ascend and claim ${getAscensionRewardText(0, pendingTails, "tails")}`
+        : "Elite ascend and reset for 0 tails";
       ascendHint.textContent = getAscendHintText();
       tailAscendHint.textContent = getTailAscendHintText();
       ascensionShopBalance.textContent = `${formatNumber(state.snakeHeads)} ${pluraliseHead(state.snakeHeads)}`;
@@ -2079,14 +2079,18 @@
     function completeRunReset(returnShop, primaryCurrency) {
       const pendingHeads = getPendingSnakeHeads();
       const pendingTails = getPendingSnakeTails();
-      const rewardText = getAscensionRewardText(pendingHeads, pendingTails, primaryCurrency);
-      const confirmed = confirm(`Ascend for ${rewardText}? This resets your current gummies, run upgrades, and buildings, but keeps permanent upgrades.`);
+      const isTailAscension = primaryCurrency === "tails";
+      const claimedHeads = isTailAscension ? 0 : pendingHeads;
+      const claimedTails = isTailAscension ? pendingTails : 0;
+      const rewardText = getAscensionRewardText(claimedHeads, claimedTails, primaryCurrency);
+      const actionText = isTailAscension ? "Elite ascend" : "Ascend";
+      const confirmed = confirm(`${actionText} for ${rewardText}? This resets your current gummies, run upgrades, and buildings, but keeps permanent upgrades.`);
       if (!confirmed) {
         return;
       }
 
-      state.snakeHeads += pendingHeads;
-      state.snakeTails += pendingTails;
+      state.snakeHeads += claimedHeads;
+      state.snakeTails += claimedTails;
       resetRun();
       saveState();
       showShop(returnShop);
@@ -2443,20 +2447,11 @@
     }
 
     function getAscensionRewardText(pendingHeads, pendingTails, primaryCurrency) {
-      const rewards = [];
-      if (primaryCurrency === "tails" && pendingTails > 0) {
-        rewards.push(`${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)}`);
+      if (primaryCurrency === "tails") {
+        return pendingTails > 0 ? `${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)}` : "0 tails";
       }
 
-      if (pendingHeads > 0) {
-        rewards.push(`${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}`);
-      }
-
-      if (primaryCurrency !== "tails" && pendingTails > 0) {
-        rewards.push(`${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)}`);
-      }
-
-      return rewards.length > 0 ? rewards.join(" + ") : `0 ${primaryCurrency}`;
+      return pendingHeads > 0 ? `${formatNumber(pendingHeads)} ${pluraliseHead(pendingHeads)}` : "0 heads";
     }
 
     function getAscensionBaseClickPower(upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
