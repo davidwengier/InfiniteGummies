@@ -948,7 +948,7 @@
         <div id="tailAscensionStore" hidden>
           <section class="shop-block">
             <div class="shop-block-header">
-              <h3>gummy tail shop</h3>
+              <h3>elite ascending</h3>
               <span id="tailAscensionShopBalance">0 tails</span>
             </div>
             <p class="ascension-copy">Spend snake tails on stronger upgrades that survive every ascension.</p>
@@ -1801,8 +1801,8 @@
         : "Open Head Shop";
       tailAscendButton.disabled = false;
       tailAscendButton.textContent = pendingTails > 0
-        ? `Open gummy tail shop (${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)} ready)`
-        : "Open gummy tail shop";
+        ? `Open elite ascending (${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)} ready)`
+        : "Open elite ascending";
       completeAscension.textContent = pendingHeads > 0
         ? `Ascend and claim ${getAscensionRewardText(pendingHeads, 0, "heads")}`
         : "Ascend and reset for 0 heads";
@@ -2116,7 +2116,7 @@
       normalStore.hidden = showingAscension || showingTailAscension;
       ascensionStore.hidden = !showingAscension;
       tailAscensionStore.hidden = !showingTailAscension;
-      shopTitle.textContent = showingTailAscension ? "gummy tail shop" : showingAscension ? "Head Shop" : "Store";
+      shopTitle.textContent = showingTailAscension ? "elite ascending" : showingAscension ? "Head Shop" : "Store";
       shopSubtitle.textContent = showingTailAscension ? "Higher ascension upgrades" : showingAscension ? "Permanent upgrades" : "Gummy stock";
       render();
     }
