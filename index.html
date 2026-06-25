@@ -886,13 +886,13 @@
 
           <div class="ascend-panel" aria-label="elite ascending">
             <div class="snake-head-balance snake-tail-balance">
-              <span>Snake tails</span>
+              <span>Gummy snake tails</span>
               <strong id="snakeTailCount">0</strong>
             </div>
             <div class="ascend-actions">
               <button class="ascend-button" id="tailAscendButton" type="button">Ascend at 1 quintillion</button>
             </div>
-            <p class="ascend-hint" id="tailAscendHint">Earn 1 snake tail for every quintillion gummies in a run.</p>
+            <p class="ascend-hint" id="tailAscendHint">Earn 1 gummy snake tail for every quintillion gummies in a run.</p>
           </div>
         </div>
         <div class="floaties" id="floaties" aria-hidden="true"></div>
@@ -951,7 +951,7 @@
               <h3>elite ascending</h3>
               <span id="tailAscensionShopBalance">0 tails</span>
             </div>
-            <p class="ascension-copy">Spend snake tails on stronger upgrades that survive every ascension.</p>
+            <p class="ascension-copy">Spend gummy snake tails on stronger upgrades that survive every ascension.</p>
             <div class="ascension-upgrades" id="tailAscensionUpgrades"></div>
             <button class="ascend-button" id="completeTailAscension" type="button">Ascend and reset run</button>
             <button class="shop-toggle-button" id="returnToHeadShop" type="button">Back to Head Shop</button>
@@ -1361,7 +1361,7 @@
         id: "tail-whip",
         name: "Tail Whip",
         image: makeIcon("sour-sugar"),
-        description: "Snake tails flick every future click much harder.",
+        description: "Gummy snake tails flick every future click much harder.",
         effect: "+1,000 clicks forever",
         cost: 1,
         costMultiplier: 2,
@@ -1414,8 +1414,8 @@
         id: "tail-twister",
         name: "Tail Twister",
         image: makeIcon("portal"),
-        description: "Earn an extra snake tail whenever a run is big enough for tails.",
-        effect: "+1 tail per tail ascend",
+        description: "Earn an extra gummy snake tail whenever a run is big enough for tails.",
+        effect: "+1 gummy snake tail per elite ascend",
         cost: 3,
         costMultiplier: 3,
         maxPurchases: 10,
@@ -2443,7 +2443,7 @@
     function getTailAscendHintText() {
       const bonusTails = getTailAscensionBonusTails();
       const bonusText = bonusTails > 0 ? ` + ${formatNumber(bonusTails)} bonus ${pluraliseTail(bonusTails)}` : "";
-      return `This run: ${formatGummyCount(state.runGummiesEarned)} gummies earned. 1 tail per 1 quintillion${bonusText}.`;
+      return `This run: ${formatGummyCount(state.runGummiesEarned)} gummies earned. 1 gummy snake tail per 1 quintillion${bonusText}.`;
     }
 
     function getAscensionRewardText(pendingHeads, pendingTails, primaryCurrency) {
