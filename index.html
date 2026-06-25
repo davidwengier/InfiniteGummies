@@ -1243,6 +1243,12 @@
       }
     ];
 
+    const TAIL_BUILDING_MASTERY_START_ID = "sour-sugar-mine";
+    const tailBuildingMasteryStartIndex = buildingDefinitions.findIndex((building) => building.id === TAIL_BUILDING_MASTERY_START_ID);
+    if (tailBuildingMasteryStartIndex < 0) {
+      throw new Error("Missing elite building mastery start building.");
+    }
+
     const buildingAscensionUpgradeDefinitions = buildingDefinitions.map((building, index) => ({
       id: `${building.id}-mastery`,
       name: `${building.name} Mastery`,
@@ -1259,6 +1265,8 @@
       },
       startingGummies: 0
     }));
+    const headBuildingAscensionUpgradeDefinitions = buildingAscensionUpgradeDefinitions.slice(0, tailBuildingMasteryStartIndex);
+    const tailBuildingAscensionUpgradeDefinitions = buildingAscensionUpgradeDefinitions.slice(tailBuildingMasteryStartIndex);
 
     const ascensionUpgradeDefinitions = [
       {
@@ -1354,7 +1362,7 @@
         storeUpgradeCostMultiplier: 0.95,
         startingGummies: 0
       }
-    ].concat(buildingAscensionUpgradeDefinitions);
+    ].concat(headBuildingAscensionUpgradeDefinitions);
 
     const tailAscensionUpgradeDefinitions = [
       {
@@ -1424,7 +1432,7 @@
         startingGummies: 0,
         extraTailsPerAscend: 1
       }
-    ];
+    ].concat(tailBuildingAscensionUpgradeDefinitions);
 
     function makeIcon(kind) {
       const svgs = {
@@ -1753,7 +1761,7 @@
         const savedBuildings = parsedState.buildings ?? parsedState.upgrades ?? {};
         const storeUpgrades = normaliseStoreUpgrades(parsedState.storeUpgrades);
         const ascensionUpgrades = normaliseAscensionUpgrades(parsedState.ascensionUpgrades);
-        const tailAscensionUpgrades = normaliseTailAscensionUpgrades(parsedState.tailAscensionUpgrades);
+        const tailAscensionUpgrades = normaliseTailAscensionUpgrades(parsedState.tailAscensionUpgrades, parsedState.ascensionUpgrades);
         const lollies = getSavedNumber(parsedState.lollies);
 
         return {
@@ -2394,9 +2402,12 @@
       }));
     }
 
-    function normaliseTailAscensionUpgrades(savedUpgrades = {}) {
+    function normaliseTailAscensionUpgrades(savedUpgrades = {}, legacyAscensionUpgrades = {}) {
       return Object.fromEntries(tailAscensionUpgradeDefinitions.map((upgrade) => {
-        return [upgrade.id, normaliseStoreUpgradeValue(savedUpgrades[upgrade.id])];
+        return [upgrade.id, Math.max(
+          normaliseStoreUpgradeValue(savedUpgrades[upgrade.id]),
+          normaliseStoreUpgradeValue(legacyAscensionUpgrades[upgrade.id])
+        )];
       }));
     }
 
