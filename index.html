@@ -954,7 +954,6 @@
             <p class="ascension-copy">Spend gummy snake tails on stronger upgrades that survive every ascension.</p>
             <div class="ascension-upgrades" id="tailAscensionUpgrades"></div>
             <button class="ascend-button" id="completeTailAscension" type="button">Ascend and reset run</button>
-            <button class="shop-toggle-button" id="returnToHeadShop" type="button">Back to Head Shop</button>
             <button class="shop-toggle-button" id="returnToStoreFromTail" type="button">Back to store</button>
           </section>
         </div>
@@ -1735,7 +1734,6 @@
     const completeAscension = document.querySelector("#completeAscension");
     const completeTailAscension = document.querySelector("#completeTailAscension");
     const returnToStore = document.querySelector("#returnToStore");
-    const returnToHeadShop = document.querySelector("#returnToHeadShop");
     const returnToStoreFromTail = document.querySelector("#returnToStoreFromTail");
     const shopTitle = document.querySelector("#shopTitle");
     const shopSubtitle = document.querySelector("#shopSubtitle");
@@ -1791,7 +1789,6 @@
     completeAscension.addEventListener("click", completeAscensionReset);
     completeTailAscension.addEventListener("click", completeTailAscensionReset);
     returnToStore.addEventListener("click", () => showShop("store"));
-    returnToHeadShop.addEventListener("click", () => showShop("ascension"));
     returnToStoreFromTail.addEventListener("click", () => showShop("store"));
 
     buildingActionButtons.forEach((button) => {
