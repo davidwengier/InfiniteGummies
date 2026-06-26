@@ -2003,12 +2003,14 @@
       tailAscendButton.textContent = pendingTails > 0
         ? `Open elite ascending (${formatNumber(pendingTails)} ${pluraliseTail(pendingTails)} ready)`
         : "Open elite ascending";
+      completeAscension.disabled = pendingHeads <= 0;
       completeAscension.textContent = pendingHeads > 0
         ? `Ascend and claim ${getAscensionRewardText(pendingHeads, 0, "heads")}`
-        : "Ascend and reset for 0 heads";
+        : "Earn 1 head to ascend";
+      completeTailAscension.disabled = pendingTails <= 0;
       completeTailAscension.textContent = pendingTails > 0
         ? `Elite ascend and claim ${getAscensionRewardText(0, pendingTails, "tails")}`
-        : "Elite ascend and reset for 0 tails";
+        : "Earn 1 tail to elite ascend";
       ascendHint.textContent = getAscendHintText();
       tailAscendHint.textContent = getTailAscendHintText();
       ascensionShopBalance.textContent = `${formatNumber(state.snakeHeads)} ${pluraliseHead(state.snakeHeads)}`;
@@ -2285,6 +2287,12 @@
       const claimedTails = isTailAscension ? pendingTails : 0;
       const rewardText = getAscensionRewardText(claimedHeads, claimedTails, primaryCurrency);
       const actionText = isTailAscension ? "Elite ascend" : "Ascend";
+      if ((isTailAscension && claimedTails <= 0) || (!isTailAscension && claimedHeads <= 0)) {
+        alert(`Earn at least 1 gummy snake ${isTailAscension ? "tail" : "head"} before you ${isTailAscension ? "elite ascend" : "ascend"}.`);
+        render();
+        return;
+      }
+
       const confirmed = confirm(`${actionText} for ${rewardText}? This resets your current gummies, run upgrades, and buildings, but keeps permanent upgrades.`);
       if (!confirmed) {
         return;
