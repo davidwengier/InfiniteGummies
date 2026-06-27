@@ -1475,6 +1475,20 @@
         startingGummies: 0
       },
       {
+        id: "head-start-hopper",
+        name: "Head Start Hopper",
+        image: makeIcon("jar"),
+        description: "Begin every future run with a steady gummy snake trickle.",
+        effect: "+10 snakes/sec forever",
+        cost: 4,
+        costMultiplier: 2,
+        maxPurchases: 20,
+        clickBonus: 0,
+        buildingMultiplier: 1,
+        startingGummies: 0,
+        basePerSecond: 10
+      },
+      {
         id: "golden-moulds",
         name: "Golden Moulds",
         image: makeIcon("mould"),
@@ -2596,7 +2610,7 @@
     function getLolliesPerSecond() {
       return buildingDefinitions.reduce((total, building) => {
         return total + getBuildingPerSecond(building) * (state.buildings[building.id] ?? 0);
-      }, 0);
+      }, getAscensionBasePerSecond());
     }
 
     function getBuildingPerSecond(building) {
@@ -2758,6 +2772,17 @@
         const buildingMultiplier = upgrade.buildingMultipliers?.[building.id] ?? 1;
         return multiplier * buildingMultiplier ** normaliseStoreUpgradeValue(tailUpgrades[upgrade.id]);
       }, headMultiplier);
+    }
+
+    function getAscensionBasePerSecond(upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
+      const headShopEffectMultiplier = getHeadShopEffectMultiplier(tailUpgrades);
+      const headBasePerSecond = ascensionUpgradeDefinitions.reduce((total, upgrade) => {
+        return total + (upgrade.basePerSecond ?? 0) * normaliseStoreUpgradeValue(upgrades[upgrade.id]) * headShopEffectMultiplier;
+      }, 0);
+
+      return tailAscensionUpgradeDefinitions.reduce((total, upgrade) => {
+        return total + (upgrade.basePerSecond ?? 0) * normaliseStoreUpgradeValue(tailUpgrades[upgrade.id]);
+      }, headBasePerSecond);
     }
 
     function getAscensionStartingGummies(upgrades = state.ascensionUpgrades, tailUpgrades = state.tailAscensionUpgrades) {
