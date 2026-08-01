@@ -1215,15 +1215,6 @@
         perSecond: 36000000000
       },
       {
-        id: "pompom",
-        name: "pompom",
-        image: makeIcon("pompom"),
-        description: "A cheerful fluffy helper bounces in with baskets of gummy snakes.",
-        baseCost: 12000000000000,
-        costMultiplier: 1.235,
-        perSecond: 180000000000
-      },
-      {
         id: "dug",
         name: "Dug",
         image: "Dug.png",
@@ -1404,31 +1395,6 @@
       }
     ];
 
-    const TAIL_BUILDING_MASTERY_START_ID = "sour-sugar-mine";
-    const tailBuildingMasteryStartIndex = buildingDefinitions.findIndex((building) => building.id === TAIL_BUILDING_MASTERY_START_ID);
-    if (tailBuildingMasteryStartIndex < 0) {
-      throw new Error("Missing elite building mastery start building.");
-    }
-
-    const buildingAscensionUpgradeDefinitions = buildingDefinitions.map((building, index) => ({
-      id: `${building.id}-mastery`,
-      name: `${building.name} Mastery`,
-      image: building.image,
-      description: `Every ${building.name} permanently makes twice as many gummy snakes.`,
-      effect: `x2 ${building.name} output`,
-      cost: getBuildingAscensionUpgradeCost(index),
-      costMultiplier: 2,
-      maxPurchases: 5,
-      clickBonus: 0,
-      buildingMultiplier: 1,
-      buildingMultipliers: {
-        [building.id]: 2
-      },
-      startingGummies: 0
-    }));
-    const headBuildingAscensionUpgradeDefinitions = buildingAscensionUpgradeDefinitions.slice(0, tailBuildingMasteryStartIndex);
-    const tailBuildingAscensionUpgradeDefinitions = buildingAscensionUpgradeDefinitions.slice(tailBuildingMasteryStartIndex);
-
     const ascensionUpgradeDefinitions = [
       {
         id: "sugar-crown",
@@ -1537,7 +1503,7 @@
         storeUpgradeCostMultiplier: 0.95,
         startingGummies: 0
       }
-    ].concat(headBuildingAscensionUpgradeDefinitions);
+    ];
 
     const tailAscensionUpgradeDefinitions = [
       {
@@ -1647,7 +1613,7 @@
         buildingMultiplier: 10,
         startingGummies: 0
       }
-    ].concat(tailBuildingAscensionUpgradeDefinitions);
+    ];
 
     function makeIcon(kind) {
       const svgs = {
@@ -1788,20 +1754,6 @@
             <circle cx="48" cy="50" r="6" fill="#ffd75c"/>
             <path d="M48 32v10M48 58v10M30 50h10M56 50h10M35 37l7 7M61 37l-7 7M35 63l7-7M61 63l-7-7" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
             <path d="M26 81c13-12 26 9 39-4" fill="none" stroke="#ff6f9f" stroke-width="7" stroke-linecap="round"/>
-          </svg>`,
-        "pompom": `
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-            <rect width="96" height="96" rx="20" fill="#fff7d2"/>
-            <circle cx="48" cy="50" r="26" fill="#ffd75c"/>
-            <circle cx="27" cy="45" r="14" fill="#fff4f8"/>
-            <circle cx="69" cy="45" r="14" fill="#fff4f8"/>
-            <circle cx="36" cy="48" r="4" fill="#263523"/>
-            <circle cx="60" cy="48" r="4" fill="#263523"/>
-            <path d="M41 58c5 5 9 5 14 0" fill="none" stroke="#263523" stroke-width="4" stroke-linecap="round"/>
-            <path d="M32 24c9-10 23-10 32 0" fill="none" stroke="#57d6b4" stroke-width="8" stroke-linecap="round"/>
-            <path d="M21 75c12-14 25 10 37-4s22 0 25 7" fill="none" stroke="#ff6f9f" stroke-width="7" stroke-linecap="round"/>
-            <circle cx="76" cy="25" r="6" fill="#9a6cff"/>
-            <circle cx="20" cy="25" r="5" fill="#8ee856"/>
           </svg>`,
         "sour-sugar": `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
@@ -1998,7 +1950,7 @@
 
       try {
         const parsedState = JSON.parse(savedState);
-        const savedBuildings = parsedState.buildings ?? parsedState.upgrades ?? {};
+        const buildings = normaliseBuildings(parsedState.buildings ?? parsedState.upgrades);
         const storeUpgrades = normaliseStoreUpgrades(parsedState.storeUpgrades);
         const ascensionUpgrades = normaliseAscensionUpgrades(parsedState.ascensionUpgrades);
         const tailAscensionUpgrades = normaliseTailAscensionUpgrades(parsedState.tailAscensionUpgrades, parsedState.ascensionUpgrades);
@@ -2016,10 +1968,7 @@
           ascensionUpgrades,
           tailAscensionUpgrades,
           storeUpgrades,
-          buildings: {
-            ...defaultState.buildings,
-            ...savedBuildings
-          }
+          buildings
         };
       } catch {
         return structuredClone(defaultState);
@@ -2529,10 +2478,6 @@
       return Math.max(1, discountMultiplier < 1 ? Math.floor(value) : Math.ceil(value));
     }
 
-    function getBuildingAscensionUpgradeCost(index) {
-      return Math.max(1, Math.ceil(2 * 1.75 ** index));
-    }
-
     function getStoreUpgradeCount(upgrade) {
       return normaliseStoreUpgradeValue(state.storeUpgrades[upgrade.id]);
     }
@@ -2678,6 +2623,12 @@
     function normaliseStoreUpgrades(savedUpgrades = {}) {
       return Object.fromEntries(storeUpgradeDefinitions.map((upgrade) => {
         return [upgrade.id, normaliseStoreUpgradeValue(savedUpgrades[upgrade.id])];
+      }));
+    }
+
+    function normaliseBuildings(savedBuildings = {}) {
+      return Object.fromEntries(buildingDefinitions.map((building) => {
+        return [building.id, Math.floor(getSavedNumber(savedBuildings[building.id]))];
       }));
     }
 
