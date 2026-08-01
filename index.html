@@ -1395,6 +1395,31 @@
       }
     ];
 
+    const TAIL_BUILDING_MASTERY_START_ID = "sour-sugar-mine";
+    const tailBuildingMasteryStartIndex = buildingDefinitions.findIndex((building) => building.id === TAIL_BUILDING_MASTERY_START_ID);
+    if (tailBuildingMasteryStartIndex < 0) {
+      throw new Error("Missing elite building mastery start building.");
+    }
+
+    const buildingAscensionUpgradeDefinitions = buildingDefinitions.map((building, index) => ({
+      id: `${building.id}-mastery`,
+      name: `${building.name} Mastery`,
+      image: building.image,
+      description: `Every ${building.name} permanently makes twice as many gummy snakes.`,
+      effect: `x2 ${building.name} output`,
+      cost: getBuildingAscensionUpgradeCost(index + (building.id === "dug" ? 1 : 0)),
+      costMultiplier: 2,
+      maxPurchases: 5,
+      clickBonus: 0,
+      buildingMultiplier: 1,
+      buildingMultipliers: {
+        [building.id]: 2
+      },
+      startingGummies: 0
+    }));
+    const headBuildingAscensionUpgradeDefinitions = buildingAscensionUpgradeDefinitions.slice(0, tailBuildingMasteryStartIndex);
+    const tailBuildingAscensionUpgradeDefinitions = buildingAscensionUpgradeDefinitions.slice(tailBuildingMasteryStartIndex);
+
     const ascensionUpgradeDefinitions = [
       {
         id: "sugar-crown",
@@ -1503,7 +1528,7 @@
         storeUpgradeCostMultiplier: 0.95,
         startingGummies: 0
       }
-    ];
+    ].concat(headBuildingAscensionUpgradeDefinitions);
 
     const tailAscensionUpgradeDefinitions = [
       {
@@ -1613,7 +1638,7 @@
         buildingMultiplier: 10,
         startingGummies: 0
       }
-    ];
+    ].concat(tailBuildingAscensionUpgradeDefinitions);
 
     function makeIcon(kind) {
       const svgs = {
@@ -2476,6 +2501,10 @@
 
     function roundCost(value, discountMultiplier = 1) {
       return Math.max(1, discountMultiplier < 1 ? Math.floor(value) : Math.ceil(value));
+    }
+
+    function getBuildingAscensionUpgradeCost(index) {
+      return Math.max(1, Math.ceil(2 * 1.75 ** index));
     }
 
     function getStoreUpgradeCount(upgrade) {
